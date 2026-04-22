@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { AudioProvider } from './context/AudioContext'
 import { NoteProvider } from './context/NoteContext'
 import { ThemeProvider } from './context/ThemeContext'

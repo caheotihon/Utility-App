@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Search, ListMusic, Heart, Trash2 } from 'lucide-react'
-import { useAudio } from '../../../context/AudioContext'
+import { useAudioLibrary, useAudioActions } from '../../../context/AudioContext'
 import ConfirmModal from '../../../components/ConfirmModal'
 
 export default function Playlist() {
   const [search, setSearch] = useState('')
-  const { playlist, currentTrackIndex, playTrack, favorites, toggleFavorite, isOnlyFavorites, setIsOnlyFavorites, deleteTrack } = useAudio()
+  const { playlist, currentTrackIndex, favorites, isOnlyFavorites } = useAudioLibrary()
+  const { playTrack, toggleFavorite, setIsOnlyFavorites, deleteTrack } = useAudioActions()
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [trackToDelete, setTrackToDelete] = useState(null)
 

@@ -29,6 +29,7 @@ export function NoteProvider({ children }) {
     if (window.eel) {
       window.eel.save_single_note(newNote);
     }
+    return newNote;
   };
 
   const updateNote = (id, updates) => {

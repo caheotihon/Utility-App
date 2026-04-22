@@ -1,16 +1,18 @@
-import { useAudio } from '../../../context/AudioContext'
+import { useAudioPlayback, useAudioActions } from '../../../context/AudioContext'
 import { Shuffle, SkipBack, Play, Pause, SkipForward, Repeat1, Volume2, VolumeX, ListMusic } from 'lucide-react'
 import { useTheme } from '../../../context/ThemeContext'
 
 export default function Player() {
   const { theme } = useTheme()
   const {
-    currentTrack, isPlaying, togglePlay, currentTime, duration, seek,
-    volume, setVolume, isMuted, setIsMuted,
-    isShuffle, toggleShuffle,
-    repeatMode, toggleRepeat,
-    handleNext, handlePrev,
-  } = useAudio()
+    currentTrack, isPlaying, currentTime, duration,
+    volume, isMuted, isShuffle, repeatMode,
+  } = useAudioPlayback()
+
+  const {
+    togglePlay, seek, setVolume, setIsMuted,
+    toggleShuffle, toggleRepeat, handleNext, handlePrev,
+  } = useAudioActions()
 
   const formatTime = (sec) => {
     if (isNaN(sec) || !isFinite(sec)) return '0:00'

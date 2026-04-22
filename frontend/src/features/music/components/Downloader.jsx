@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from 'react'
 import { DownloadCloud, Download, RefreshCw, Loader2, CheckCircle2, AlertCircle, X, Music2 } from 'lucide-react'
-import { useAudio } from '../../../context/AudioContext'
+import { useAudioDownload } from '../../../context/AudioContext'
 
 export default function Downloader() {
   const [urls, setUrls] = useState('')
-  const { refreshPlaylist, downloadStatus, setDownloadStatus } = useAudio()
+  const { downloadStatus, refreshPlaylist, setDownloadStatus } = useAudioDownload()
   const textareaRef = useRef(null)
 
   // Tự động tăng chiều cao textarea mượt mà

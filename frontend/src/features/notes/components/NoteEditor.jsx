@@ -4,7 +4,7 @@ import {
     Calendar,
 } from 'lucide-react';
 
-export default function NoteEditor({ activeNote, updateNote, deleteNote }) {
+export default function NoteEditor({ activeNote, updateNote }) {
     const [copied, setCopied] = React.useState(false);
 
     if (!activeNote) {
