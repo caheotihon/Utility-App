@@ -7,6 +7,7 @@ import socketserver
 import urllib.parse
 import mimetypes
 import base64
+import inspect
 import eel
 from mutagen.mp3 import MP3
 from mutagen.id3 import ID3
@@ -16,12 +17,36 @@ from PIL import Image
 import win32gui
 import win32con
 import ctypes
+from ctypes import wintypes
 
 # Fix mờ icon và giao diện trên màn hình DPI cao
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except Exception:
     ctypes.windll.user32.SetProcessDPIAware()
+
+def get_center_position(window_size):
+    """Return (x, y) to center a window on the primary screen."""
+    try:
+        window_width, window_height = window_size
+
+        SPI_GETWORKAREA = 0x0030
+        rect = wintypes.RECT()
+        if ctypes.windll.user32.SystemParametersInfoW(SPI_GETWORKAREA, 0, ctypes.byref(rect), 0):
+            work_width = rect.right - rect.left
+            work_height = rect.bottom - rect.top
+            x = rect.left + max(0, (work_width - window_width) // 2)
+            y = rect.top + max(0, (work_height - window_height) // 2)
+            return (x, y)
+
+        user32 = ctypes.windll.user32
+        screen_width = user32.GetSystemMetrics(0)
+        screen_height = user32.GetSystemMetrics(1)
+        x = max(0, (screen_width - window_width) // 2)
+        y = max(0, (screen_height - window_height) // 2)
+        return (x, y)
+    except Exception:
+        return None
 
 # --- CẤU HÌNH ĐƯỜNG DẪN ---
 # Khi đóng gói PyInstaller: sys._MEIPASS trỏ tới thư mục tạm chứa data bundled
@@ -389,6 +414,16 @@ if __name__ == '__main__':
 
     # Xác định thư mục frontend (bundled data)
     FRONTEND_DIST = os.path.join(ROOT_BUNDLE, 'frontend', 'dist')
+    WINDOW_SIZE = (1100, 750)
+    WINDOW_POSITION = get_center_position(WINDOW_SIZE)
+
+    eel_start_kwargs = {"port": 8000, "size": WINDOW_SIZE}
+    if WINDOW_POSITION:
+        try:
+            if "position" in inspect.signature(eel.start).parameters:
+                eel_start_kwargs["position"] = WINDOW_POSITION
+        except Exception:
+            eel_start_kwargs["position"] = WINDOW_POSITION
 
     print(f"[*] Music Player dang khoi dong...")
     print(f"[*] Thu muc nhac: {DOWNLOADS}")
@@ -414,7 +449,7 @@ if __name__ == '__main__':
             # Start tray in a separate thread
             threading.Thread(target=setup_tray, daemon=True).start()
             
-            eel.start('http://localhost:5173', port=8000, size=(1100, 750))
+            eel.start('http://localhost:5173', **eel_start_kwargs)
         except EnvironmentError as e:
             print(f"[ERROR] Khong mo duoc trinh duyet: {e}")
     else:
@@ -433,6 +468,6 @@ if __name__ == '__main__':
             threading.Thread(target=setup_tray, daemon=True).start()
             
             # Start Eel
-            eel.start('index.html', port=8000, size=(1100, 750))
+            eel.start('index.html', **eel_start_kwargs)
         except EnvironmentError as e:
             print(f"[ERROR] Khong mo duoc trinh duyet: {e}")

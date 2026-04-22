@@ -10,7 +10,8 @@ export function AudioProvider({ children }) {
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(0.9)
   const [isMuted, setIsMuted] = useState(false)
-  const [playMode, setPlayMode] = useState('normal') // 'normal' | 'repeat' | 'shuffle'
+  const [isShuffle, setIsShuffle] = useState(false)
+  const [repeatMode, setRepeatMode] = useState('off') // 'off' | 'one'
   const [originalPlaylist, setOriginalPlaylist] = useState([]) // Lưu lại thứ tự gốc
   const [favorites, setFavorites] = useState(() => {
     const saved = localStorage.getItem('music_favorites');
@@ -20,20 +21,22 @@ export function AudioProvider({ children }) {
   const [downloadStatus, setDownloadStatus] = useState('')
 
   const audioRef = useRef(new Audio())
+  const loadedTrackKeyRef = useRef(null)
 
   // Refs để truy cập state mới nhất bên trong Event Listeners mà không cần re-bind listener
   const stateRef = useRef({
     playlist: [],
-    playMode: 'normal',
     currentTrackIndex: -1,
     isOnlyFavorites: false,
-    favorites: []
+    favorites: [],
+    isShuffle: false,
+    repeatMode: 'off'
   })
 
   // Đồng bộ Refs khi state thay đổi
   useEffect(() => {
-    stateRef.current = { playlist, playMode, currentTrackIndex, isOnlyFavorites, favorites }
-  }, [playlist, playMode, currentTrackIndex, isOnlyFavorites, favorites])
+    stateRef.current = { playlist, currentTrackIndex, isOnlyFavorites, favorites, isShuffle, repeatMode }
+  }, [playlist, currentTrackIndex, isOnlyFavorites, favorites, isShuffle, repeatMode])
 
   // Đồng bộ favorites với localStorage
   useEffect(() => {
@@ -75,7 +78,7 @@ export function AudioProvider({ children }) {
 
   // Logic Chuyển bài
   const handleNext = useCallback(() => {
-    const { playlist, playMode, currentTrackIndex, isOnlyFavorites, favorites } = stateRef.current
+    const { playlist, currentTrackIndex, isOnlyFavorites, favorites } = stateRef.current
     if (playlist.length === 0) return
 
     // Lọc danh sách bài hát hợp lệ theo chế độ hiện tại
@@ -88,12 +91,6 @@ export function AudioProvider({ children }) {
     // Tìm index hiện tại trong danh sách hiệu dụng
     const currentTrack = playlist[currentTrackIndex];
     let currentIndexInEffective = effectivePlaylist.findIndex(t => t.file === currentTrack?.file);
-
-    if (playMode === 'repeat') {
-      audioRef.current.currentTime = 0
-      audioRef.current.play().catch(() => { })
-      return
-    }
 
     // Tính toán bài tiếp theo trong danh sách hiệu dụng
     const nextInEffective = (currentIndexInEffective + 1) % effectivePlaylist.length;
@@ -131,16 +128,24 @@ export function AudioProvider({ children }) {
     setIsPlaying(true);
   }, [])
 
+  const handleEnded = useCallback(() => {
+    const { repeatMode } = stateRef.current
+    if (repeatMode === 'one') {
+      audioRef.current.currentTime = 0
+      setCurrentTime(0)
+      audioRef.current.play().catch(() => { })
+      return
+    }
+    handleNext()
+  }, [handleNext])
+
   // ỔN ĐỊNH EVENT LISTENERS: Chỉ gán 1 lần, dùng Ref để đọc mode
   useEffect(() => {
     const audio = audioRef.current
 
     const onTimeUpdate = () => setCurrentTime(audio.currentTime)
     const onLoadedMetadata = () => setDuration(audio.duration)
-    const onEnded = () => {
-      // Gọi handleNext() - lúc này handleNext sẽ đọc playMode từ stateRef
-      handleNext()
-    }
+    const onEnded = () => handleEnded()
 
     audio.addEventListener('timeupdate', onTimeUpdate)
     audio.addEventListener('loadedmetadata', onLoadedMetadata)
@@ -151,18 +156,24 @@ export function AudioProvider({ children }) {
       audio.removeEventListener('loadedmetadata', onLoadedMetadata)
       audio.removeEventListener('ended', onEnded)
     }
-  }, [handleNext])
+  }, [handleEnded])
 
   useEffect(() => {
     audioRef.current.volume = isMuted ? 0 : volume
   }, [volume, isMuted])
 
   useEffect(() => {
-    if (currentTrackIndex >= 0 && playlist[currentTrackIndex]) {
-      const track = playlist[currentTrackIndex]
-      audioRef.current.src = track.url
-      audioRef.current.load()
-    }
+    const track = currentTrackIndex >= 0 ? playlist[currentTrackIndex] : null
+    if (!track) return
+
+    const trackKey = `${track.file || ''}|${track.url || ''}`
+    if (loadedTrackKeyRef.current === trackKey && audioRef.current.src) return
+
+    loadedTrackKeyRef.current = trackKey
+    audioRef.current.src = track.url
+    audioRef.current.load()
+    setCurrentTime(0)
+    setDuration(0)
   }, [currentTrackIndex, playlist])
 
   useEffect(() => {
@@ -195,39 +206,46 @@ export function AudioProvider({ children }) {
     setCurrentTime(time)
   }, [])
 
+  const toggleRepeat = useCallback(() => {
+    setRepeatMode(prev => (prev === 'one' ? 'off' : 'one'))
+  }, [])
+
   // HÀM TRỘN NHẠC THỰC THỤ (Fisher-Yates Shuffle)
   const toggleShuffle = useCallback(() => {
-    if (playMode === 'shuffle') {
+    if (isShuffle) {
       // Đang Shuffle -> Tắt: Khôi phục danh sách gốc
       const currentTrack = playlist[currentTrackIndex];
       setPlaylist([...originalPlaylist]);
-      setPlayMode('normal');
+      setIsShuffle(false);
       // Tìm lại index mới trong list gốc để không bị nhảy bài
       if (currentTrack) {
         const newIndex = originalPlaylist.findIndex(t => t.file === currentTrack.file);
         if (newIndex !== -1) setCurrentTrackIndex(newIndex);
       }
     } else {
-      // Đang Normal -> Bật: Trộn danh sách
-      const currentTrack = playlist[currentTrackIndex];
-      const shuffled = [...playlist];
-      
-      // Thuật toán Fisher-Yates
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
+      // Đang Normal -> Bật: Trộn danh sách, đưa bài đang nghe lên đầu (không reset time)
+      const currentTrack = playlist[currentTrackIndex] || null;
 
-      // Đưa bài đang phát lên đầu hoặc tìm vị trí mới của nó
+      const fisherYates = (arr) => {
+        const out = [...arr];
+        for (let i = out.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [out[i], out[j]] = [out[j], out[i]];
+        }
+        return out;
+      };
+
       if (currentTrack) {
-        const newIndex = shuffled.findIndex(t => t.file === currentTrack.file);
-        if (newIndex !== -1) setCurrentTrackIndex(newIndex);
+        const remaining = playlist.filter(t => t.file !== currentTrack.file);
+        const shuffled = [currentTrack, ...fisherYates(remaining)];
+        setPlaylist(shuffled);
+        setCurrentTrackIndex(0);
+      } else {
+        setPlaylist(fisherYates(playlist));
       }
-
-      setPlaylist(shuffled);
-      setPlayMode('shuffle');
+      setIsShuffle(true);
     }
-  }, [playMode, playlist, currentTrackIndex, originalPlaylist]);
+  }, [isShuffle, playlist, currentTrackIndex, originalPlaylist]);
 
   const toggleFavorite = useCallback((trackId) => {
     setFavorites(prev => 
@@ -246,6 +264,7 @@ export function AudioProvider({ children }) {
           if (currentTrack && currentTrack.file === filename) {
             audioRef.current.pause();
             audioRef.current.src = "";
+            loadedTrackKeyRef.current = null;
             setIsPlaying(false);
             setCurrentTrackIndex(-1);
           }
@@ -264,7 +283,8 @@ export function AudioProvider({ children }) {
       currentTime, duration, seek,
       volume, setVolume,
       isMuted, setIsMuted,
-      playMode, setPlayMode, toggleShuffle,
+      isShuffle, toggleShuffle,
+      repeatMode, toggleRepeat,
       favorites, toggleFavorite,
       deleteTrack,
       isOnlyFavorites, setIsOnlyFavorites,
@@ -277,4 +297,3 @@ export function AudioProvider({ children }) {
 }
 
 export const useAudio = () => useContext(AudioContext)
-

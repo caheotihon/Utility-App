@@ -10,25 +10,38 @@
   transition-duration: 300ms;
 }
 
-/* Custom scrollbar thanh mảnh và hiện đại */
+/* Custom Scrollbar cho Textarea */
 .scrollbar-custom::-webkit-scrollbar {
-  width: 5px;
+  width: 10px; /* Độ rộng vừa phải */
 }
+
 .scrollbar-custom::-webkit-scrollbar-track {
   background: transparent;
+  /* Tạo khoảng trống ở 2 đầu để không chạm vào góc bo tròn của textarea */
+  margin: 10px 0; 
 }
+
 .scrollbar-custom::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.1);
-  border-radius: 9999px;
+  /* Tạo hiệu ứng thanh cuộn nằm cách mép bằng border trong suốt */
+  background-color: rgba(0, 0, 0, 0.1);
+  border: 3px solid transparent; 
+  background-clip: padding-box;
+  border-radius: 10px;
 }
+
 .dark .scrollbar-custom::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
+  background-color: rgba(255, 255, 255, 0.1);
+  border: 3px solid transparent;
+  background-clip: padding-box;
 }
+
 .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-  background: rgba(0, 0, 0, 0.2);
+  background-color: #6366f1; /* Hiện màu Indigo khi hover */
 }
-.dark .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+
+/* Ẩn scroll khi không có nội dung dài (tùy chọn) */
+.scrollbar-custom {
+  scrollbar-gutter: stable; /* Giữ layout không bị giật khi scroll hiện ra */
 }
 
 /* Ẩn thanh cuộn nhưng vẫn cho phép cuộn */
@@ -38,4 +51,13 @@
 .no-scrollbar {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */
   scrollbar-width: none;  /* Firefox */
+}
+
+.animate-spin-slow {
+  animation: spin 20s linear infinite;
+}
+
+/* Class giữ nguyên vị trí khi tạm dừng */
+.pause-animation {
+  animation-play-state: paused;
 }

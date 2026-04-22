@@ -64,15 +64,31 @@ export default function Downloader() {
       </header>
 
       <div className="relative group">
-        <textarea
-          ref={textareaRef}
-          value={urls}
-          onChange={e => setUrls(e.target.value)}
-          className="w-full p-4 rounded-2xl bg-white dark:bg-[#10182880] border border-black/[0.03] dark:border-white/10 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 dark:focus:border-emerald-500/50 transition-all text-sm shrink-0 resize-none min-h-[100px] shadow-sm text-gray-900 dark:text-white"
-          placeholder="Dán link YouTube tại đây (mỗi dòng 1 link)..."
-        />
-        <Music2 className="absolute right-4 bottom-4 w-5 h-5 text-gray-200 dark:text-gray-700 pointer-events-none group-focus-within:text-indigo-500/20 transition-colors" />
-      </div>
+  <textarea
+    ref={textareaRef}
+    value={urls}
+    onChange={(e) => setUrls(e.target.value)}
+    className="
+      w-full p-4 rounded-2xl 
+      bg-white dark:bg-[#10182880] 
+      border border-black/[0.03] dark:border-white/10 
+      placeholder-gray-400 dark:placeholder-gray-600 
+      focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 
+      transition-all text-sm shrink-0 shadow-sm 
+      text-gray-900 dark:text-white
+      
+      /* Cấu hình scroll cũ nhưng thêm class mới */
+      resize-none 
+      min-h-[100px] 
+      max-h-[250px] 
+      overflow-y-auto 
+      scrollbar-custom
+      leading-relaxed
+    "
+    placeholder="Dán link YouTube tại đây (mỗi dòng 1 link)..."
+  />
+  <Music2 className="absolute right-4 bottom-4 w-5 h-5 text-gray-200 dark:text-gray-700 pointer-events-none group-focus-within:text-indigo-500/20 transition-colors" />
+</div>
 
       <div className="grid grid-cols-1 gap-3">
         <button

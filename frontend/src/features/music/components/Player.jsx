@@ -6,7 +6,10 @@ export default function Player() {
   const { theme } = useTheme()
   const {
     currentTrack, isPlaying, togglePlay, currentTime, duration, seek,
-    volume, setVolume, isMuted, setIsMuted, playMode, setPlayMode, toggleShuffle, handleNext, handlePrev,
+    volume, setVolume, isMuted, setIsMuted,
+    isShuffle, toggleShuffle,
+    repeatMode, toggleRepeat,
+    handleNext, handlePrev,
     favorites, toggleFavorite
   } = useAudio()
 
@@ -24,8 +27,14 @@ export default function Player() {
   const progressPercent = duration ? (currentTime / duration) * 100 : 0
   const volumePercent = isMuted ? 0 : volume * 100
 
-  const activeColor = theme === 'dark' ? '#10b981' : '#10b981'
-  const inactiveColor = theme === 'dark' ? '#374151' : '#f1f5f9'
+  // Màu phần đã chạy qua (Active)
+  // Giữ nguyên hoặc chỉnh xanh đậm hơn một chút cho mode sáng nếu muốn
+  const activeColor = theme === 'dark' ? '#10b981' : '#059669' 
+
+  // Màu phần chưa chạy tới (Inactive) - Quan trọng ở đây:
+  const inactiveColor = theme === 'dark' 
+    ? '#374151' // Xám đậm cho mode tối (giữ nguyên)
+    : '#cbd5e1' // Đổi từ #f1f5f9 sang #cbd5e1 (xám đậm hơn) để nhìn rõ trên nền trắng
 
   return (
     <main className="w-full flex-1 md:h-full rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-2xl relative overflow-hidden bg-white dark:bg-gray-900 flex flex-col transition-all duration-500">
@@ -42,12 +51,40 @@ export default function Player() {
         <div className="w-full max-w-2xl m-auto flex flex-col items-center shrink-0">
 
           {/* Ảnh Cover */}
-          <div className="w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 lg:w-80 lg:h-80 rounded-3xl bg-gray-200 dark:bg-gray-800 shadow-[0_20px_40px_rgba(0,0,0,0.1)] dark:shadow-2xl flex items-center justify-center mb-6 lg:mb-8 overflow-hidden ring-1 ring-black/5 dark:ring-white/10 shrink-0">
-            {currentTrack?.cover ? (
-              <img src={currentTrack.cover} alt="cover" className={`w-full h-full object-cover transition-transform duration-700 ${isPlaying ? 'scale-110' : 'scale-100'}`} />
-            ) : (
-              <ListMusic className="w-20 h-20 text-gray-400 dark:text-gray-600" />
-            )}
+          <div
+            className={[
+              'relative w-52 h-52 sm:w-64 sm:h-64 md:w-72 md:h-72 lg:w-80 lg:h-80',
+              'rounded-full overflow-hidden',
+              'bg-gray-200 dark:bg-gray-800',
+              'shadow-[0_20px_40px_rgba(0,0,0,0.2)] dark:shadow-2xl',
+              'flex items-center justify-center mb-6 lg:mb-8 shrink-0',
+              'ring-4 ring-white dark:ring-gray-800',
+              'will-change-transform',
+              // THAY ĐỔI Ở ĐÂY: Luôn giữ animate-spin-slow, chỉ thêm pause-animation khi dừng
+              'animate-spin-slow', 
+              !isPlaying ? 'pause-animation' : ''
+            ].join(' ')}
+          >
+            {/* Lớp phủ hiệu ứng bóng bẩy của đĩa nhạc (vẫn giữ để nhìn có chiều sâu) */}
+            <div className="absolute inset-0 z-10 pointer-events-none bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.2)_0%,rgba(255,255,255,0)_40%,rgba(0,0,0,0.3)_100%)]"></div>
+            <div className="absolute inset-0 z-10 opacity-20 bg-[repeating-radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0px,rgba(255,255,255,0.1)_1px,transparent_1px,transparent_10px)] mix-blend-overlay"></div>
+
+            {/* Container ảnh - Đã chỉnh lên w-full h-full */}
+            <div className="relative w-full h-full rounded-full overflow-hidden flex items-center justify-center">
+              {currentTrack?.cover ? (
+                <img
+                  src={currentTrack.cover}
+                  alt="cover"
+                  // Xóa phần scale ở đây để ảnh luôn giữ nguyên kích thước khi quay
+                  className="w-full h-full object-cover transition-transform duration-1000"
+                />
+              ) : (
+                <ListMusic className="w-20 h-20 text-gray-400 dark:text-gray-600" />
+              )}
+            </div>
+
+            {/* Lỗ trục giữa đĩa nhạc (tùy chọn: bạn có thể xóa nếu muốn ảnh chiếm 100% hoàn toàn) */}
+            <div className="absolute z-20 top-1/2 left-1/2 w-5 h-5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white dark:bg-gray-900 shadow-inner ring-4 ring-black/10"></div>
           </div>
 
           {/* Info */}
@@ -64,7 +101,7 @@ export default function Player() {
           <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-8 w-full">
             <button
               onClick={toggleShuffle}
-              className={`cursor-pointer w-12 h-12 flex items-center justify-center rounded-full transition-all duration-300 ${playMode === 'shuffle'
+              className={`cursor-pointer w-12 h-12 flex items-center justify-center rounded-full transition-all duration-300 ${isShuffle
                 ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'
                 : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
                 }`}
@@ -88,8 +125,8 @@ export default function Player() {
             </button>
 
             <button
-              onClick={() => setPlayMode(playMode === 'repeat' ? 'normal' : 'repeat')}
-              className={`cursor-pointer w-12 h-12 flex items-center justify-center rounded-full transition-all duration-300 ${playMode === 'repeat'
+              onClick={toggleRepeat}
+              className={`cursor-pointer w-12 h-12 flex items-center justify-center rounded-full transition-all duration-300 ${repeatMode === 'one'
                 ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
                 : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
                 }`}
