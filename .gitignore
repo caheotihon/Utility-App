@@ -1,0 +1,61 @@
+# ========================================
+# 1. DỮ LIỆU CÁ NHÂN CỦA APP (QUAN TRỌNG)
+# ========================================
+# Bỏ qua thư mục chứa nhạc tải về (được định nghĩa trong music_player.py)
+/downloads/
+*.mp3
+*.mp4
+*.wav
+
+# ========================================
+# 2. FRONTEND (React / Vite / Node.js)
+# ========================================
+# Thư viện tải về (rất nặng, tự sinh ra khi chạy npm install)
+node_modules/
+
+# Thư mục build (sẽ tự sinh ra khi chạy npm run build)
+/frontend/dist/
+dist/
+build/
+
+# Các file log lỗi của npm/yarn
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ========================================
+# 3. BACKEND (Python / Eel)
+# ========================================
+# Cache của Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Môi trường ảo (Virtual Environment)
+venv/
+.venv/
+env/
+
+# ========================================
+# 4. BUILD TOOLS (PyInstaller)
+# ========================================
+# Bỏ qua thư mục build exe, file thực thi và cấu hình build
+/build/
+/dist/
+*.spec
+*.exe
+
+# ========================================
+# 5. MÔI TRƯỜNG & HỆ ĐIỀU HÀNH & IDE
+# ========================================
+# File chứa biến môi trường (nếu bạn có dùng)
+.env
+.env.local
+
+# File rác của hệ điều hành
+.DS_Store
+Thumbs.db
+
+# Cấu hình của Editor (VS Code, WebStorm...)
+.vscode/
+.idea/

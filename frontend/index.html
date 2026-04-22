@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lofi Music Player</title>
+  <link rel="icon" type="image/png" href="/logo-app.ico" />
+  <script type="text/javascript" src="/eel.js"></script>
+  <script type="text/javascript">
+    // Dùng hàm có tên để tránh lỗi scanner của Eel phía Python
+    function downloadStatus(msg) {
+      const event = new CustomEvent('eelDownloadStatus', { detail: msg });
+      window.dispatchEvent(event);
+    }
+
+    if (window.eel) {
+      eel.expose(downloadStatus);
+    }
+  </script>
+</head>
+
+<body class="bg-gray-900 text-gray-100 font-sans">
+  <div id="root"></div>
+  <script type="module" src="/src/main.jsx"></script>
+</body>
+
+</html>

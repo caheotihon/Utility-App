@@ -1,0 +1,4 @@
+eel
+mutagen
+yt-dlp
+pyinstaller
