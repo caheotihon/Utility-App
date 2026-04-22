@@ -50,10 +50,27 @@ function MusicSidebar() {
 
 export default function MusicPage() {
     return (
-        <div className="flex flex-col md:flex-row h-auto md:h-full w-full gap-4 md:gap-6 transition-all duration-500 overflow-y-auto md:overflow-visible no-scrollbar">
+        <div className="
+            flex flex-col md:flex-row 
+            h-auto md:h-full w-full 
+            gap-4 md:gap-6 
+            transition-all duration-500 
+            /* QUAN TRỌNG: Thay đổi overflow và thêm padding */
+            overflow-y-visible md:overflow-visible 
+            no-scrollbar 
+            p-4 md:p-0 /* Thêm padding p-4 ở mobile để hiện bóng đổ */
+        ">
             <MusicSidebar />
             <main className="flex-1 min-w-0 order-1 md:order-2 h-auto md:h-full flex flex-col relative z-10 overflow-visible">
-                <div className="flex-1 bg-white dark:bg-gray-900 rounded-3xl border border-black/[0.03] dark:border-white/5 shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] overflow-hidden">
+                <div className="
+                    flex-1 bg-white dark:bg-gray-900 
+                    rounded-3xl 
+                    border border-black/[0.03] dark:border-white/5 
+                    /* Bóng đổ lớn cần không gian để lan tỏa */
+                    shadow-[0_20px_50px_rgba(0,0,0,0.08)] 
+                    dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] 
+                    overflow-hidden
+                ">
                     <Player />
                 </div>
             </main>

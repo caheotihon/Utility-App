@@ -40,8 +40,8 @@ export default function NotesPage() {
   }
 
   return (
-    <div className="flex h-full w-full bg-white dark:bg-[#0b0e14] rounded-2xl overflow-hidden border border-black/5 dark:border-white/10 transition-all duration-300">
-      <div className={`${showEditorMobile ? 'hidden md:flex' : 'flex'} w-full md:w-80 flex-col border-r border-black/[0.03] dark:border-white/[0.05] bg-gray-50/50 dark:bg-gray-900/20`}>
+    <div className="flex h-full w-full bg-white dark:bg-[#0b0e14] rounded-2xl overflow-hidden border border-black/5 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.35)] transition-all duration-300">
+      <div className={`${showEditorMobile ? 'hidden md:flex' : 'flex'} w-full md:w-80 flex-col border-r border-black/[0.03] dark:border-white/[0.05] bg-gray-50/50 dark:bg-gray-900/20 shadow-[8px_0_24px_rgba(0,0,0,0.03)] dark:shadow-[8px_0_24px_rgba(0,0,0,0.12)]`}>
         <NoteList
           notes={notes}
           activeNoteId={activeNoteId}
