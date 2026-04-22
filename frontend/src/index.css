@@ -61,3 +61,136 @@
 .pause-animation {
   animation-play-state: paused;
 }
+
+/* Music player scales by its own container width instead of the viewport */
+.music-player-shell {
+  container-type: inline-size;
+  container-name: music-player;
+}
+
+.music-panel-shell {
+  container-type: inline-size;
+  container-name: music-panel;
+}
+
+.music-player-cover {
+  width: clamp(5rem, 40cqi, 20rem);
+  max-width: 70%;
+}
+
+.music-player-title {
+  font-size: 1rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.music-player-artist {
+  font-size: 0.875rem;
+}
+
+@container music-player (min-width: 28rem) {
+  .music-player-title {
+    font-size: 1.25rem;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    text-wrap: balance;
+  }
+
+  .music-player-artist {
+    font-size: 1rem;
+  }
+}
+
+@container music-player (min-width: 40rem) {
+  .music-player-cover {
+    width: clamp(10rem, 32cqi, 20rem);
+  }
+
+  .music-player-title {
+    font-size: 1.75rem;
+  }
+
+  .music-player-artist {
+    font-size: 1.125rem;
+  }
+}
+
+@container music-player (max-width: 24rem) {
+  .music-player-cover {
+    width: clamp(5rem, 55cqi, 10rem);
+  }
+
+  .music-player-title {
+    font-size: 0.875rem;
+  }
+
+  .music-player-artist {
+    font-size: 0.75rem;
+  }
+}
+
+.music-panel-title {
+  font-size: 0.875rem;
+}
+
+.music-panel-badge {
+  font-size: 0.625rem;
+}
+
+.music-panel-search {
+  font-size: 0.8125rem;
+}
+
+.music-panel-item-title,
+.music-panel-item-subtitle {
+  min-width: 0;
+}
+
+@container music-panel (min-width: 26rem) {
+  .music-panel-title {
+    font-size: 1rem;
+  }
+
+  .music-panel-search {
+    font-size: 0.875rem;
+  }
+}
+
+@container music-panel (min-width: 34rem) {
+  .music-panel-title {
+    font-size: 1.125rem;
+  }
+
+  .music-panel-badge {
+    font-size: 0.75rem;
+  }
+
+  .music-panel-item-title {
+    font-size: 0.9375rem;
+  }
+
+  .music-panel-item-subtitle {
+    font-size: 0.8125rem;
+  }
+}
+
+@container music-panel (max-width: 22rem) {
+  .music-panel-title {
+    font-size: 0.75rem;
+  }
+
+  .music-panel-search {
+    font-size: 0.75rem;
+  }
+
+  .music-panel-item-title {
+    font-size: 0.8125rem;
+  }
+
+  .music-panel-item-subtitle {
+    font-size: 0.6875rem;
+  }
+}

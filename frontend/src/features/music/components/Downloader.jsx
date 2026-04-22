@@ -55,12 +55,12 @@ export default function Downloader() {
   const status = getStatusConfig()
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="music-panel-shell flex flex-col gap-4">
       <header className="flex items-center justify-between shrink-0">
-        <h2 className="text-sm font-bold flex items-center gap-2 text-gray-900 dark:text-white uppercase tracking-wider">
+        <h2 className="music-panel-title text-sm font-bold flex items-center gap-2 text-gray-900 dark:text-white uppercase tracking-wider">
           <DownloadCloud className="w-5 h-5 text-indigo-500" /> Tải nhạc mới
         </h2>
-        <span className="text-[10px] bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold">YouTube MP3</span>
+        <span className="music-panel-badge text-[10px] bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold">YouTube MP3</span>
       </header>
 
       <div className="relative group">
@@ -69,6 +69,7 @@ export default function Downloader() {
     value={urls}
     onChange={(e) => setUrls(e.target.value)}
     className="
+      music-panel-textarea
       w-full p-4 rounded-2xl 
       bg-white dark:bg-[#10182880] 
       border border-black/[0.03] dark:border-white/10 
@@ -90,7 +91,7 @@ export default function Downloader() {
   <Music2 className="absolute right-4 bottom-4 w-5 h-5 text-gray-200 dark:text-gray-700 pointer-events-none group-focus-within:text-indigo-500/20 transition-colors" />
 </div>
 
-      <div className="grid grid-cols-1 gap-3">
+      <div className="music-panel-actions grid grid-cols-1 gap-3">
         <button
           onClick={handleDownload}
           className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-200 dark:shadow-none"
@@ -107,7 +108,7 @@ export default function Downloader() {
       </div>
 
       {downloadStatus && (
-        <div className={`p-4 rounded-2xl flex items-start gap-3 border animate-in slide-in-from-bottom-2 duration-300 ${status.container}`}>
+        <div className={`music-panel-status p-4 rounded-2xl flex items-start gap-3 border animate-in slide-in-from-bottom-2 duration-300 ${status.container}`}>
           <div className="mt-0.5">{status.icon}</div>
           <div className="flex-1 text-xs font-bold leading-relaxed">{downloadStatus}</div>
           <button onClick={() => setDownloadStatus('')} className="hover:scale-110 transition-transform">
