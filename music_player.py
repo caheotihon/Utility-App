@@ -19,11 +19,40 @@ import win32con
 import ctypes
 from ctypes import wintypes
 
+download_queue = []       # Hàng đợi chứa các url cần tải
+processed_urls = set()    # Lưu các url đã thêm để kiểm tra trùng lặp
+is_downloading = False    # Cờ kiểm tra xem có đang chạy tiến trình tải không
+download_stats = {
+    'total': 0,           # Tổng số bài cần tải trong đợt này
+    'completed': 0,       # Số bài đã tải xong
+    'failed': 0,          # Số bài bị lỗi
+    'current_index': 0,   # Số thứ tự bài đang tải
+    'duplicates': 0       # Số link bị trùng bị bỏ qua
+}
+queue_lock = threading.Lock() # Lock để tránh đụng độ khi nhiều thread thao tác vào biến
+
 # Fix mờ icon và giao diện trên màn hình DPI cao
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except Exception:
     ctypes.windll.user32.SetProcessDPIAware()
+
+def get_bottom_right_position(window_size):
+    """Return (x, y) to place a window at the bottom right of the work area."""
+    try:
+        window_width, window_height = window_size
+        SPI_GETWORKAREA = 0x0030
+        rect = wintypes.RECT()
+        if ctypes.windll.user32.SystemParametersInfoW(SPI_GETWORKAREA, 0, ctypes.byref(rect), 0):
+            work_width = rect.right - rect.left
+            work_height = rect.bottom - rect.top
+            # Calculate bottom right
+            x = rect.right - window_width - 10 # 10px margin
+            y = rect.bottom - window_height - 10
+            return (x, y)
+        return (100, 100)
+    except Exception:
+        return (100, 100)
 
 def get_center_position(window_size):
     """Return (x, y) to center a window on the primary screen."""
@@ -60,9 +89,8 @@ else:
     ROOT_APP = ROOT_BUNDLE
 
 DOWNLOADS = os.path.join(ROOT_APP, 'downloads')
-NOTES_DIR = os.path.join(ROOT_APP, 'notes')
 
-for dir_path in [DOWNLOADS, NOTES_DIR]:
+for dir_path in [DOWNLOADS]:
     if not os.path.exists(dir_path):
         os.makedirs(dir_path)
 
@@ -208,69 +236,7 @@ def delete_song(filename):
         except Exception as e:
             print(f"[ERROR] Khong the xoa file nhac {filename}: {e}")
     return False
-import json
 
-@eel.expose
-def get_notes():
-    """Lấy danh sách ghi chú từ thư mục notes."""
-    notes = []
-    if not os.path.exists(NOTES_DIR):
-        return []
-    
-    for filename in os.listdir(NOTES_DIR):
-        if filename.endswith('.json'):
-            path = os.path.join(NOTES_DIR, filename)
-            try:
-                with open(path, 'r', encoding='utf-8') as f:
-                    note = json.load(f)
-                    notes.append(note)
-            except Exception as e:
-                print(f"[ERROR] Khong the doc file ghi chu {filename}: {e}")
-    
-    # Sắp xếp theo thời gian mới nhất (trên cùng)
-    return sorted(notes, key=lambda x: x.get('id', 0), reverse=True)
-
-@eel.expose
-def save_all_notes(notes_list):
-    """Lưu toàn bộ danh sách ghi chú (dùng để đồng bộ hoặc reorder)."""
-    # Xoá các file cũ không còn tồn tại trong list mới
-    existing_files = [f for f in os.listdir(NOTES_DIR) if f.endswith('.json')]
-    new_ids = [f"{n['id']}.json" for n in notes_list]
-    
-    for f in existing_files:
-        if f not in new_ids:
-            try:
-                os.remove(os.path.join(NOTES_DIR, f))
-            except: pass
-
-    for note in notes_list:
-        save_single_note(note)
-
-@eel.expose
-def save_single_note(note):
-    """Lưu một ghi chú đơn lẻ thành file JSON."""
-    filename = f"{note['id']}.json"
-    path = os.path.join(NOTES_DIR, filename)
-    try:
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump(note, f, ensure_ascii=False, indent=4)
-        return True
-    except Exception as e:
-        print(f"[ERROR] Khong the luu file ghi chu {filename}: {e}")
-        return False
-
-@eel.expose
-def delete_single_note(note_id):
-    """Xoá file ghi chú theo ID."""
-    filename = f"{note_id}.json"
-    path = os.path.join(NOTES_DIR, filename)
-    if os.path.exists(path):
-        try:
-            os.remove(path)
-            return True
-        except Exception as e:
-            print(f"[ERROR] Khong the xoa file ghi chu {filename}: {e}")
-    return False
 
 
 def _send_status(msg):
@@ -292,62 +258,102 @@ def _send_status(msg):
 
 @eel.expose
 def start_download(urls):
-    """Tải nhạc từ danh sách URL YouTube."""
-    def process():
-        total = len([u for u in urls if u.strip()])
-        _send_status(f"⏳ Đang khởi tạo trình tải cho {total} bài hát...")
-        
-        ydl_opts = {
-            'format': 'bestaudio/best',
-            'postprocessors': [
-                {'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'},
-                {'key': 'FFmpegMetadata', 'add_metadata': True},
-                {'key': 'EmbedThumbnail', 'already_have_thumbnail': False}
-            ],
-            'writethumbnail': True,
-            'outtmpl': os.path.join(DOWNLOADS, '%(title)s.%(ext)s'),
-            'quiet': True,
-            'noplaylist': True,
-        }
-        
-        completed = 0
-        failed = 0
-        
-        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-            for index, url in enumerate(urls, 1):
-                if not url.strip():
-                    continue
-                
-                try:
-                    # Gửi trạng thái chi tiết kèm chỉ số x/y
-                    _send_status(f"⏳ Đang tải bài {index}/{total}...")
-                    
-                    # Trích xuất thông tin trước khi tải để lấy tiêu đề bài hát (tùy chọn)
-                    # info = ydl.extract_info(url, download=True)
-                    # title = info.get('title', url[:30])
-                    
-                    ydl.download([url])
-                    completed += 1
-                    
-                    # Sau khi tải xong 1 bài, gửi thông báo cập nhật
-                    _send_status(f"⏳ Đang tải bài {index}/{total} (Xong {completed} bài)...")
-                
-                except Exception as e:
-                    failed += 1
-                    _send_status(f"⚠️ Lỗi ở bài {index}: {str(e)[:50]}")
-
-        # THÔNG BÁO CUỐI CÙNG
-        if completed == total:
-            _send_status(f"✅ Hoàn tất! Đã tải thành công {completed}/{total} bài hát.")
-        else:
-            _send_status(f"⚠️ Tải xong: {completed} thành công, {failed} thất bại.")
-
-    if not urls:
+    global is_downloading
+    
+    new_urls = [u.strip() for u in urls if u.strip()]
+    if not new_urls:
         _send_status("⚠️ Vui lòng nhập link YouTube.")
         return
-        
-    threading.Thread(target=process, daemon=True).start()
 
+    added_count = 0
+    
+    with queue_lock:
+        for url in new_urls:
+            # Nếu link đã tồn tại -> Tăng biến đếm trùng lặp
+            if url in processed_urls:
+                download_stats['duplicates'] += 1
+            else:
+                processed_urls.add(url)
+                download_queue.append(url)
+                download_stats['total'] += 1
+                added_count += 1
+
+    with queue_lock:
+        if not is_downloading and download_queue:
+            is_downloading = True
+            threading.Thread(target=process_queue, daemon=True).start()
+        else:
+            if added_count > 0:
+                _send_status(f"⏳ Đã thêm vào hàng đợi. Tổng bài: {download_stats['total']}")
+
+
+def process_queue():
+    global is_downloading
+    
+    ydl_opts = {
+        'format': 'bestaudio/best',
+        'postprocessors': [
+            {'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'},
+            {'key': 'FFmpegMetadata', 'add_metadata': True},
+            {'key': 'EmbedThumbnail', 'already_have_thumbnail': False}
+        ],
+        'writethumbnail': True,
+        'outtmpl': os.path.join(DOWNLOADS, '%(title)s.%(ext)s'),
+        'quiet': True,
+        'noplaylist': True,
+    }
+    
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        while True:
+            with queue_lock:
+                if not download_queue:
+                    is_downloading = False
+                    break
+                
+                url = download_queue.pop(0)
+                download_stats['current_index'] += 1
+            
+            index = download_stats['current_index']
+            total = download_stats['total']
+            
+            _send_status(f"⏳ Đang tải bài {index}/{total}...")
+            
+            try:
+                ydl.download([url])
+                with queue_lock:
+                    download_stats['completed'] += 1
+                
+                completed = download_stats['completed']
+                _send_status(f"⏳ Đang tải bài {index}/{total} (Xong {completed} bài)...")
+                
+            except Exception as e:
+                with queue_lock:
+                    download_stats['failed'] += 1
+                _send_status(f"⚠️ Lỗi ở bài {index}: {str(e)[:50]}")
+                eel.sleep(1)
+                
+    # ================= KHI TẤT CẢ HÀNG ĐỢI ĐÃ TRỐNG =================
+    total = download_stats['total']
+    completed = download_stats['completed']
+    failed = download_stats['failed']
+    duplicates = download_stats['duplicates']
+    
+    # Tạo text thông báo trùng nếu có
+    dup_text = f" (bỏ qua {duplicates} link trùng)" if duplicates > 0 else ""
+    
+    if completed == total and total > 0:
+        _send_status(f"✅ Hoàn tất! Đã tải thành công {completed}/{total} bài hát{dup_text}.")
+    elif total > 0:
+        _send_status(f"✅ Hoàn tất tải: {completed} thành công, {failed} thất bại{dup_text}.")
+        
+    # Reset các biến thống kê
+    with queue_lock:
+        download_stats['total'] = 0
+        download_stats['completed'] = 0
+        download_stats['failed'] = 0
+        download_stats['current_index'] = 0
+        download_stats['duplicates'] = 0
+        processed_urls.clear()
 
 # --- SYSTEM TRAY & WINDOW MANAGEMENT ---
 APP_TITLE = "Lofi Music Player"
@@ -403,6 +409,24 @@ def setup_tray():
         tray_icon.run()
     except Exception as e:
         print(f"[ERROR] Tray icon error: {e}")
+
+@eel.expose
+def set_always_on_top(is_on_top):
+    hwnd = get_window_handle()
+    if hwnd:
+        flag = win32con.HWND_TOPMOST if is_on_top else win32con.HWND_NOTOPMOST
+        win32gui.SetWindowPos(hwnd, flag, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
+
+@eel.expose
+def resize_window(width, height, position='center'):
+    hwnd = get_window_handle()
+    if hwnd:
+        if position == 'bottom-right':
+            new_x, new_y = get_bottom_right_position((width, height))
+        else:
+            new_x, new_y = get_center_position((width, height)) or (100, 100)
+        
+        win32gui.MoveWindow(hwnd, new_x, new_y, width, height, True)
 
 @eel.expose
 def minimize_to_tray():

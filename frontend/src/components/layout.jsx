@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
-import { Music, FileText, Sun, Moon, Shrink } from 'lucide-react'
+import { Music, Sun, Moon, Shrink, Download, TrendingUp, History, Brain } from 'lucide-react'
 import Avatar from './Avatar'
 import ProfileModal from './ProfileModal'
 import { useTheme } from '../context/ThemeContext'
+import { useAudioPlayback } from '../context/AudioContext'
 
 export default function Layout({ children, activeFeature, setActiveFeature }) {
+    const { isMiniPlayer } = useAudioPlayback() || {};
     const { theme, toggleTheme } = useTheme();
     const [isProfileOpen, setIsProfileOpen] = useState(false);
     const [avatarSrc, setAvatarSrc] = useState(() => {
@@ -26,17 +28,15 @@ export default function Layout({ children, activeFeature, setActiveFeature }) {
         }
     }, [isProfileOpen]);
 
-    const navItems = [
-        { id: 'music', icon: Music, label: 'Âm nhạc' },
-        { id: 'notes', icon: FileText, label: 'Ghi chú' },
-    ]
+
 
     return (
         <div className="h-screen w-full bg-gray-50 dark:bg-[#0b0e14] text-gray-900 dark:text-gray-100 flex flex-col md:flex-row overflow-hidden font-sans transition-colors duration-300 md:gap-0 gap-3">
 
             {/* Navigation */}
+            {!isMiniPlayer && (
             <nav className="order-2 md:order-1 w-full md:w-24 lg:w-64 bg-white/90 dark:bg-gray-900/50 backdrop-blur-xl border-t md:border-t-0 md:border-r border-black/5 dark:border-white/10 z-50 shrink-0 pb-[env(safe-area-inset-bottom)]">
-                <div className="flex flex-row md:flex-col items-center justify-around md:justify-start h-16 md:h-full py-0 md:py-8 px-2 md:px-0 gap-0 md:gap-6 lg:gap-8">
+                <div className="flex flex-row md:flex-col items-center justify-between md:justify-start h-16 md:h-full py-0 md:py-8 px-6 md:px-0 gap-0 md:gap-6 lg:gap-8">
 
                     {/* Avatar & Name */}
                     <div className="hidden md:flex flex-col items-center lg:items-start lg:px-6 w-full shrink-0 mb-4 cursor-pointer group relative" onClick={() => setIsProfileOpen(true)}>
@@ -56,80 +56,72 @@ export default function Layout({ children, activeFeature, setActiveFeature }) {
                         </span>
                     </div>
 
-                    <div className="flex flex-row md:flex-col items-center justify-around md:justify-start flex-[2] md:flex-none md:w-full gap-0 md:gap-4 lg:px-3">
-                        {navItems.map(item => (
+                    {/* Mobile Navigation (Flat list) */}
+                    <div className="md:hidden flex flex-row items-center justify-between w-full px-2">
+                        <button onClick={() => setActiveFeature('music')} className={`p-2 rounded-xl ${activeFeature === 'music' ? 'text-blue-600 bg-blue-500/10' : 'text-gray-400'}`}>
+                            <Music className="w-6 h-6" />
+                        </button>
+                        <button onClick={() => setActiveFeature('stats')} className={`p-2 rounded-xl ${activeFeature === 'stats' ? 'text-blue-600 bg-blue-500/10' : 'text-gray-400'}`}>
+                            <TrendingUp className="w-6 h-6" />
+                        </button>
+                        <button onClick={() => setActiveFeature('history')} className={`p-2 rounded-xl ${activeFeature === 'history' ? 'text-blue-600 bg-blue-500/10' : 'text-gray-400'}`}>
+                            <History className="w-6 h-6" />
+                        </button>
+                        <button onClick={toggleTheme} className="p-2 rounded-xl text-gray-400">
+                            {theme === 'light' ? <Moon className="w-6 h-6" /> : <Sun className="w-6 h-6" />}
+                        </button>
+                        <button onClick={() => window.eel && window.eel.minimize_to_tray()} className="p-2 rounded-xl text-gray-400">
+                            <Shrink className="w-6 h-6" />
+                        </button>
+                        <button onClick={() => setIsProfileOpen(true)} className="p-1">
+                            <div className="w-8 h-8 rounded-full overflow-hidden border border-black/10 dark:border-white/20">
+                                {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-300 dark:bg-gray-700" />}
+                            </div>
+                        </button>
+                    </div>
+
+                    {/* Desktop Navigation (Grouped) */}
+                    <div className="hidden md:flex flex-col items-center justify-start w-full gap-4 lg:px-3">
+                        {[
+                            { id: 'music', icon: Music, label: 'Âm nhạc' },
+                            { id: 'stats', icon: TrendingUp, label: 'Thống kê' },
+                            { id: 'history', icon: History, label: 'Lịch sử' }
+                        ].map(item => (
                             <button
                                 key={item.id}
                                 onClick={() => setActiveFeature(item.id)}
-                                className={`flex flex-col lg:flex-row items-center justify-center lg:justify-start py-1 md:p-3 lg:px-4 rounded-2xl transition-all relative group cursor-pointer flex-1 md:flex-none min-w-0 md:min-w-[64px] lg:w-full gap-3 ${activeFeature === item.id
-                                    ? 'text-blue-600 dark:text-blue-400 bg-blue-500/5 lg:bg-blue-500/10'
-                                    : 'text-gray-400 dark:text-gray-500 hover:text-blue-600 dark:hover:text-white hover:bg-gray-500/5'
-                                    }`}
+                                className={`flex flex-col lg:flex-row items-center justify-center lg:justify-start py-3 lg:px-4 rounded-2xl transition-all relative group cursor-pointer w-full gap-3 ${
+                                    activeFeature === item.id 
+                                    ? 'text-blue-600 dark:text-blue-400 bg-blue-500/10' 
+                                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-white'
+                                }`}
                             >
-                                <div className="p-1 lg:p-0 rounded-xl transition-all">
-                                    <item.icon className={`w-6 h-6 md:w-7 md:h-7 lg:w-5 lg:h-5 transition-all duration-300 ${activeFeature === item.id ? 'scale-110' : ''}`} />
-                                </div>
-
-                                {/* Label: Chỉ hiện chữ thật sự ở màn hình lớn (lg), mobile/tablet dùng tooltip */}
-                                <span className="hidden lg:block text-sm font-bold transition-all">
-                                    {item.label}
-                                </span>
-
-                                {/* Tooltip cho Tablet (Ẩn khi ở màn hình lg vì đã có chữ) */}
-                                <span className="absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 lg:group-hover:opacity-0 transition-opacity whitespace-nowrap z-[60] pointer-events-none shadow-xl border border-white/10">
-                                    {item.label}
-                                </span>
-
+                                <item.icon className={`w-7 lg:w-5 h-7 lg:h-5 transition-all duration-300 ${activeFeature === item.id ? 'scale-110' : ''}`} />
+                                <span className="hidden lg:block text-sm font-bold transition-all">{item.label}</span>
                                 {activeFeature === item.id && (
                                     <span className="hidden md:block lg:hidden absolute -left-0 w-1.5 h-8 bg-blue-600 dark:bg-blue-500 rounded-r-full shadow-[2px_0_12px_rgba(37,99,235,0.6)]"></span>
-                                )}
-                                {activeFeature === item.id && (
-                                    <span className="md:hidden absolute top-0 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-600 dark:bg-blue-500 rounded-full"></span>
                                 )}
                             </button>
                         ))}
                     </div>
 
-                    {/* Nút Theme & Minimize */}
-                    <div className="flex flex-row md:flex-col items-center justify-around md:justify-start flex-[2] md:flex-none md:w-full mt-0 md:mt-auto gap-0 md:gap-2 lg:px-3">
-                        <button
-                            onClick={toggleTheme}
-                            className="flex flex-col lg:flex-row items-center justify-center lg:justify-start py-1 md:p-3 lg:px-4 text-gray-400 hover:text-blue-600 dark:hover:text-white rounded-2xl transition-all cursor-pointer flex-1 md:flex-none min-w-0 md:min-w-[64px] lg:w-full gap-3 hover:bg-gray-500/5 group relative"
-                        >
-                            <div className="p-1 lg:p-0">
-                                {theme === 'light' ? <Moon className="w-6 h-6 md:w-7 md:h-7 lg:w-5 lg:h-5" /> : <Sun className="w-6 h-6 md:w-7 md:h-7 lg:w-5 lg:h-5" />}
-                            </div>
+                    <div className="hidden md:flex flex-col items-center justify-start w-full mt-auto gap-2 lg:px-3 pb-4">
+                        <button onClick={toggleTheme} className="flex flex-col lg:flex-row items-center justify-center lg:justify-start py-3 lg:px-4 text-gray-400 hover:text-blue-600 dark:hover:text-white rounded-2xl transition-all cursor-pointer w-full gap-3 hover:bg-gray-500/5 group relative">
+                            {theme === 'light' ? <Moon className="w-7 lg:w-5 h-7 lg:h-5" /> : <Sun className="w-7 lg:w-5 h-7 lg:h-5" />}
                             <span className="hidden lg:block text-sm font-bold">Giao diện</span>
-                            <span className="absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 lg:group-hover:opacity-0 transition-opacity whitespace-nowrap z-[60] pointer-events-none shadow-xl border border-white/10">
-                                Đổi giao diện
-                            </span>
                         </button>
 
-                        <button
-                            onClick={() => window.eel && window.eel.minimize_to_tray()}
-                            className="flex flex-col lg:flex-row items-center justify-center lg:justify-start py-1 md:p-3 lg:px-4 text-gray-400 hover:text-blue-600 dark:hover:text-white rounded-2xl transition-all cursor-pointer flex-1 md:flex-none min-w-0 md:min-w-[64px] lg:w-full gap-3 hover:bg-gray-500/5 group relative"
-                        >
-                            <div className="p-1 lg:p-0">
-                                <Shrink className="w-6 h-6 md:w-7 md:h-7 lg:w-5 lg:h-5" />
-                            </div>
+                        <button onClick={() => window.eel && window.eel.minimize_to_tray()} className="flex flex-col lg:flex-row items-center justify-center lg:justify-start py-3 lg:px-4 text-gray-400 hover:text-blue-600 dark:hover:text-white rounded-2xl transition-all cursor-pointer w-full gap-3 hover:bg-gray-500/5 group relative">
+                            <Shrink className="w-7 lg:w-5 h-7 lg:h-5" />
                             <span className="hidden lg:block text-sm font-bold">Thu nhỏ</span>
-                            <span className="absolute left-full ml-4 px-2 py-1 bg-gray-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 lg:group-hover:opacity-0 transition-opacity whitespace-nowrap z-[60] pointer-events-none shadow-xl border border-white/10">
-                                Thu nhỏ ứng dụng
-                            </span>
                         </button>
                     </div>
-
-                    {/* Avatar cho Mobile */}
-                    <button onClick={() => setIsProfileOpen(true)} className="md:hidden flex flex-col items-center justify-center py-1 flex-1 min-w-0 md:min-w-[64px]">
-                        <div className="w-7 h-7 rounded-full overflow-hidden border border-black/10 dark:border-white/20">
-                            {avatarSrc ? <img src={avatarSrc} className="w-full h-full object-cover" /> : <div className="w-full h-full bg-gray-300 dark:bg-gray-700" />}
-                        </div>
-                    </button>
                 </div>
             </nav>
+            )}
 
-            <main className="order-1 md:order-2 flex-1 relative overflow-y-auto overflow-x-visible flex flex-col no-scrollbar transition-all pt-2 md:pt-0">
-                <div className="flex-1 w-full px-4 md:p-6 py-2 min-h-0 flex flex-col">
+            <main className={`order-1 md:order-2 flex-1 relative overflow-y-auto overflow-x-visible flex flex-col no-scrollbar transition-all ${isMiniPlayer ? 'pt-0' : 'pt-2 md:pt-0'}`}>
+                <div className={`flex-1 w-full ${isMiniPlayer ? 'p-0 h-full' : 'px-4 md:p-6 py-2'} min-h-0 flex flex-col`}>
                     {children}
                 </div>
             </main>

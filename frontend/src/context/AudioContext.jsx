@@ -22,9 +22,24 @@ export function AudioProvider({ children }) {
   })
   const [isOnlyFavorites, setIsOnlyFavorites] = useState(false)
   const [downloadStatus, setDownloadStatus] = useState('')
+  const [bassLevel, setBassLevel] = useState(0)
+  const [frequencies, setFrequencies] = useState(new Uint8Array(0))
+  const [isMiniPlayer, setIsMiniPlayer] = useState(false)
+  const [playHistory, setPlayHistory] = useState(() => {
+    const saved = localStorage.getItem('music_history')
+    return saved ? JSON.parse(saved) : []
+  })
+  const [playStats, setPlayStats] = useState(() => {
+    const saved = localStorage.getItem('music_stats')
+    return saved ? JSON.parse(saved) : {}
+  })
 
   const audioRef = useRef(new Audio())
   const loadedTrackKeyRef = useRef(null)
+  const audioContextRef = useRef(null)
+  const sourceNodeRef = useRef(null)
+  const analyserNodeRef = useRef(null)
+  const animationFrameRef = useRef(null)
 
   const stateRef = useRef({
     playlist: [],
@@ -51,6 +66,71 @@ export function AudioProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('music_favorites', JSON.stringify(favorites))
   }, [favorites])
+
+  useEffect(() => {
+    localStorage.setItem('music_history', JSON.stringify(playHistory))
+  }, [playHistory])
+
+  useEffect(() => {
+    localStorage.setItem('music_stats', JSON.stringify(playStats))
+  }, [playStats])
+
+  const initAudioContext = useCallback(() => {
+    if (audioContextRef.current) return
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext
+    const ctx = new AudioContextClass()
+    audioContextRef.current = ctx
+
+    const analyser = ctx.createAnalyser()
+    analyser.fftSize = 256
+    analyserNodeRef.current = analyser
+
+    const source = ctx.createMediaElementSource(audioRef.current)
+    sourceNodeRef.current = source
+
+    // Connect nodes
+    source.connect(analyser)
+    analyser.connect(ctx.destination)
+
+    const bufferLength = analyser.frequencyBinCount
+    const dataArray = new Uint8Array(bufferLength)
+
+    const updateVisuals = () => {
+      analyser.getByteFrequencyData(dataArray)
+      setFrequencies(new Uint8Array(dataArray))
+
+      // Calculate bass (first few bins)
+      // Bin 0 & 1 are sub-bass and bass. We weight bin 0 more.
+      const bassValue = (dataArray[0] * 0.8 + dataArray[1] * 0.4 + dataArray[2] * 0.2) / 1.4
+      
+      // Use a non-linear scaling to make it "punchier"
+      // Normalized value squared to emphasize peaks
+      const normalizedBass = Math.pow(bassValue / 255, 1.5)
+      setBassLevel(normalizedBass)
+
+      animationFrameRef.current = requestAnimationFrame(updateVisuals)
+    }
+    updateVisuals()
+  }, [])
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current)
+      if (audioContextRef.current) audioContextRef.current.close()
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!window.eel) return
+    if (isMiniPlayer) {
+      window.eel.resize_window(350, 420, 'bottom-right')
+      window.eel.set_always_on_top(true)
+    } else {
+      window.eel.resize_window(1100, 750, 'center')
+      window.eel.set_always_on_top(false)
+    }
+  }, [isMiniPlayer])
 
   const refreshPlaylist = useCallback(() => {
     if (!window.eel) return
@@ -172,10 +252,30 @@ export function AudioProvider({ children }) {
     if (loadedTrackKeyRef.current === trackKey && audioRef.current.src) return
 
     loadedTrackKeyRef.current = trackKey
+    audioRef.current.crossOrigin = "anonymous" // For Web Audio API
     audioRef.current.src = track.url
     audioRef.current.load()
     setCurrentTime(0)
     setDuration(0)
+
+    // Track history and stats
+    const now = new Date()
+    const dateStr = now.toLocaleDateString()
+    
+    setPlayHistory(prev => [{
+      file: track.file,
+      title: track.title,
+      artist: track.artist,
+      timestamp: now.getTime(),
+      date: dateStr
+    }, ...prev].slice(0, 100))
+
+    setPlayStats(prev => {
+      const stats = { ...prev }
+      const key = track.title || track.file
+      stats[key] = (stats[key] || 0) + 1
+      return stats
+    })
   }, [currentTrackIndex, playlist])
 
   useEffect(() => {
@@ -194,11 +294,13 @@ export function AudioProvider({ children }) {
     if (currentTrackIndex === -1 && playlist.length > 0) {
       setCurrentTrackIndex(0)
       setIsPlaying(true)
+      initAudioContext()
       return
     }
 
+    if (!isPlaying) initAudioContext()
     setIsPlaying(prev => !prev)
-  }, [])
+  }, [isPlaying, initAudioContext])
 
   const playTrack = useCallback((index) => {
     setCurrentTrackIndex(index)
@@ -290,7 +392,12 @@ export function AudioProvider({ children }) {
     isMuted,
     isShuffle,
     repeatMode,
-  }), [currentTrack, currentTrackIndex, isPlaying, currentTime, duration, volume, isMuted, isShuffle, repeatMode])
+    bassLevel,
+    frequencies,
+    isMiniPlayer,
+    playHistory,
+    playStats,
+  }), [currentTrack, currentTrackIndex, isPlaying, currentTime, duration, volume, isMuted, isShuffle, repeatMode, bassLevel, frequencies, isMiniPlayer, playHistory, playStats])
 
   const libraryValue = useMemo(() => ({
     playlist,
@@ -317,6 +424,7 @@ export function AudioProvider({ children }) {
     setRepeatMode,
     setFavorites,
     setIsOnlyFavorites,
+    setIsMiniPlayer,
     togglePlay,
     playTrack,
     seek,

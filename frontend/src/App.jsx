@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { AudioProvider } from './context/AudioContext'
-import { NoteProvider } from './context/NoteContext'
 import { ThemeProvider } from './context/ThemeContext'
 import Layout from './components/layout'
 import MusicPage from './features/music/MusicPage'
-import NotesPage from './features/notes/NotesPage'
+import MusicStats from './features/music/components/MusicStats'
+import MusicHistory from './features/music/components/MusicHistory'
 
 function App() {
   const [activeFeature, setActiveFeature] = useState('music')
@@ -12,15 +12,11 @@ function App() {
   return (
     <ThemeProvider>
       <AudioProvider>
-        <NoteProvider>
-          <Layout activeFeature={activeFeature} setActiveFeature={setActiveFeature}>
-            {activeFeature === 'music' ? (
-              <MusicPage />
-            ) : (
-              <NotesPage />
-            )}
-          </Layout>
-        </NoteProvider>
+        <Layout activeFeature={activeFeature} setActiveFeature={setActiveFeature}>
+          {activeFeature === 'music' && <MusicPage />}
+          {activeFeature === 'stats' && <MusicStats />}
+          {activeFeature === 'history' && <MusicHistory />}
+        </Layout>
       </AudioProvider>
     </ThemeProvider>
   )
