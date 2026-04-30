@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Player from './components/Player'
 import Playlist from './components/Playlist'
 import Downloader from './components/Downloader'
@@ -7,8 +7,12 @@ import { ListMusic, Download, Brain } from 'lucide-react'
 import { useAudioPlayback } from '../../context/AudioContext'
 
 function MusicSidebar() {
-    const [tab, setTab] = useState('player')
+    const [tab, setTab] = useState(() => localStorage.getItem('musicActiveTab') || 'player')
     const { isMiniPlayer } = useAudioPlayback()
+
+    useEffect(() => {
+        localStorage.setItem('musicActiveTab', tab)
+    }, [tab])
 
     if (isMiniPlayer) return null
 

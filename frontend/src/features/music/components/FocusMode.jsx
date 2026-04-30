@@ -215,7 +215,7 @@ export default function FocusMode() {
 
       <p className="text-[10px] font-bold text-gray-400 text-center max-w-[200px] leading-relaxed">
         {isActive
-          ? "Đang trong chế độ tập trung. Nhạc sẽ tự động phát để giúp bạn làm việc hiệu quả hơn."
+          ? "Đang trong chế độ tập trung. Nhạc sẽ tự động phát để giúp bạn chill hơn."
           : "Bắt đầu bộ đếm thời gian hoặc nhấn vào đồng hồ để sửa số phút mong muốn."
         }
       </p>

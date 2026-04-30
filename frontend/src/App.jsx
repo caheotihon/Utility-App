@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { AudioProvider } from './context/AudioContext'
 import { ThemeProvider } from './context/ThemeContext'
 import Layout from './components/layout'
@@ -7,7 +7,11 @@ import MusicStats from './features/music/components/MusicStats'
 import MusicHistory from './features/music/components/MusicHistory'
 
 function App() {
-  const [activeFeature, setActiveFeature] = useState('music')
+  const [activeFeature, setActiveFeature] = useState(() => localStorage.getItem('activeFeature') || 'music')
+
+  useEffect(() => {
+    localStorage.setItem('activeFeature', activeFeature)
+  }, [activeFeature])
 
   return (
     <ThemeProvider>
