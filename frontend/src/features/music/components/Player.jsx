@@ -35,20 +35,21 @@ export default function Player() {
 
   if (isMiniPlayer) {
     return (
-      <div className="flex flex-col h-full w-full bg-white dark:bg-gray-900 overflow-hidden relative">
+      <div className="flex flex-col h-screen w-full bg-white dark:bg-gray-900 overflow-hidden relative">
         <div 
           className="absolute inset-0 bg-cover bg-center blur-2xl opacity-20 pointer-events-none"
           style={{ backgroundImage: currentTrack?.cover ? `url('${currentTrack.cover}')` : 'none' }}
         />
-        <div className="relative z-10 flex flex-col items-center justify-center h-full p-4 gap-4">
+        <div className="relative z-10 flex flex-col items-center justify-between h-full p-3 gap-2">
           <div className="absolute top-2 right-2">
              <button onClick={() => setIsMiniPlayer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2">
                <ListMusic className="w-5 h-5" />
              </button>
           </div>
 
-          <div className="scale-75 origin-center">
+          <div className="flex-1 w-full flex items-center justify-center min-h-0 pt-8 pb-1">
             <MusicVisualizer 
+              className="w-full h-full max-w-[130px] max-h-[130px] shrink-0"
               cover={currentTrack?.cover}
               isPlaying={isPlaying} 
               bassLevel={bassLevel} 
@@ -57,58 +58,56 @@ export default function Player() {
             />
           </div>
 
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col items-center gap-2 w-full shrink-0">
+            <div className="flex items-center gap-4">
             <SkipBack onClick={handlePrev} className="w-5 h-5 cursor-pointer dark:text-white hover:text-indigo-500 transition-colors" />
-            <button onClick={togglePlay} className="w-12 h-12 rounded-full bg-indigo-600 dark:bg-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
-              {isPlaying ? <Pause className="w-6 h-6 fill-current dark:text-gray-900 text-white" /> : <Play className="w-6 h-6 fill-current dark:text-gray-900 text-white ml-1" />}
+            <button onClick={togglePlay} className="w-10 h-10 rounded-full bg-indigo-600 dark:bg-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
+              {isPlaying ? <Pause className="w-5 h-5 fill-current dark:text-gray-900 text-white" /> : <Play className="w-5 h-5 fill-current dark:text-gray-900 text-white ml-0.5" />}
             </button>
             <SkipForward onClick={handleNext} className="w-5 h-5 cursor-pointer dark:text-white hover:text-indigo-500 transition-colors" />
-          </div>
-
-          <div className="w-full px-2">
-            <div className="w-full h-1 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
             </div>
-          </div>
+
+            <div className="w-full px-2 mb-1">
+              <div className="w-full h-1 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+                <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
+              </div>
+            </div>
         </div>
+      </div>
       </div>
     )
   }
 
   return (
-    <main className="w-full flex-1 md:h-full rounded-2xl shadow-2xl relative overflow-hidden bg-white dark:bg-gray-950 flex flex-col transition-all duration-500">
-      {/* Dynamic Background from Track Cover */}
+    <main className="music-player-shell w-full flex-1 md:h-full rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.05)] dark:shadow-2xl relative overflow-hidden bg-white dark:bg-gray-900 flex flex-col transition-all duration-500">
       <div
-        className="absolute inset-0 bg-cover bg-center blur-[80px] scale-[1.2] pointer-events-none transition-all duration-1000 opacity-20 dark:opacity-40"
+        className="absolute inset-0 bg-cover bg-center blur-[100px] scale-[1.5] pointer-events-none transition-all duration-1000 opacity-30 dark:opacity-60"
         style={{ backgroundImage: currentTrack?.cover ? `url('${currentTrack.cover}')` : 'none' }}
       />
-      
-      {/* Dark Overlay Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/40 to-white dark:via-black/40 dark:to-black/90 pointer-events-none z-0" />
 
-      <div className="relative z-10 flex-1 w-full p-4 sm:p-5 lg:p-8 flex flex-col items-center justify-center">
-        {/* 1. Visualizer (Image + Spectrum) */}
-        <MusicVisualizer 
-          cover={currentTrack?.cover}
-          isPlaying={isPlaying} 
-          bassLevel={bassLevel} 
-          frequencies={frequencies}
-          theme={theme}
-        />
+      <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/95 to-white dark:from-transparent dark:via-gray-900/80 dark:to-gray-900 pointer-events-none z-0" />
 
-        {/* 2. Track Info (Title + Artist) */}
-        <div className="text-center mb-8 w-full px-4 max-w-xl">
-          <h1 className="text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
-            {currentTrack?.title || currentTrack?.file?.split('/').pop() || 'Chưa chọn bài'}
-          </h1>
-          <p className="text-sm sm:text-base font-bold text-indigo-600 dark:text-indigo-400 mt-2 uppercase tracking-widest opacity-80">
-            {currentTrack?.artist || 'Nghệ sĩ'}
-          </p>
-        </div>
+      <div className="relative z-10 flex-1 w-full overflow-y-auto md:overflow-y-hidden p-4 sm:p-5 lg:p-8 [@media(max-height:600px)]:p-2 flex flex-col no-scrollbar justify-center">
+        <div className="w-full max-w-2xl m-auto flex flex-col items-center shrink-0">
+          <MusicVisualizer 
+            className="music-player-cover mb-[clamp(0.5rem,4vh,2rem)] shrink-0"
+            cover={currentTrack?.cover}
+            isPlaying={isPlaying} 
+            bassLevel={bassLevel} 
+            frequencies={frequencies}
+            theme={theme}
+          />
 
-        {/* 3. Controls Container */}
-        <div className="w-full max-w-xl">
-          <div className="flex items-center justify-center gap-4 sm:gap-6 mb-8 w-full">
+          <div className="text-center mb-8 [@media(max-height:700px)]:mb-4 [@media(max-height:600px)]:mb-2 w-full px-2">
+            <h1 className="music-player-title text-base font-black text-gray-900 dark:text-white tracking-tight truncate transition-all">
+              {currentTrack?.title || 'Chưa chọn bài'}
+            </h1>
+            <p className="music-player-artist text-sm font-bold text-indigo-600 dark:text-indigo-400 mt-2 [@media(max-height:600px)]:mt-1 transition-all">
+              {currentTrack?.artist || 'Nghệ sĩ'}
+            </p>
+          </div>
+
+          <div className="flex items-center justify-center gap-2 sm:gap-3 md:gap-4 mb-8 [@media(max-height:700px)]:mb-4 [@media(max-height:600px)]:mb-2 w-full">
             <button
               title="Trộn bài"
               onClick={toggleShuffle}
@@ -149,7 +148,7 @@ export default function Player() {
             </button>
           </div>
 
-          <div className="w-full bg-gray-100/50 dark:bg-black/20 px-3 py-2 sm:px-4 rounded-3xl border border-black/[0.03] dark:border-white/5">
+          <div className="w-full bg-gray-100/50 dark:bg-black/20 px-3 py-2 sm:px-4 [@media(max-height:600px)]:py-1.5 rounded-3xl border border-black/[0.03] dark:border-white/5">
             <div className="flex items-center gap-2 sm:gap-4">
               <span className="text-[10px] sm:text-xs font-black text-gray-600 dark:text-gray-400 min-w-[36px] sm:min-w-[40px] tabular-nums">
                 {formatTime(currentTime)}
@@ -172,51 +171,49 @@ export default function Player() {
                 {currentTrack?.duration || '0:00'}
               </span>
 
-              <div className="flex items-center gap-1 ml-2 shrink-0">
-                <div className="relative group/volume flex items-center justify-center">
-                  <button
-                    onClick={() => setIsMuted(!isMuted)}
-                    className="cursor-pointer text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all p-1.5 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5"
-                  >
-                    {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
-                  </button>
+              <div className="relative group/volume flex items-center justify-center ml-1 sm:ml-2">
+                <button
+                  onClick={() => setIsMuted(!isMuted)}
+                  className="cursor-pointer text-gray-500 dark:text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all p-1.5 sm:p-2 rounded-full hover:bg-gray-100 dark:hover:bg-white/5"
+                >
+                  {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" /> : <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />}
+                </button>
 
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 pb-6 opacity-0 invisible group-hover/volume:opacity-100 group-hover/volume:visible transition-all duration-300 ease-out z-50">
-                    <div className="rounded-2xl flex flex-col items-center gap-2 min-w-[50px] transform origin-bottom transition-transform duration-300 group-hover/volume:scale-100 scale-95 bg-white dark:bg-gray-800 shadow-xl border border-black/5 dark:border-white/10 p-2">
-                      <div className="h-32 w-6 flex items-center justify-center relative">
-                        <input
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={isMuted ? 0 : volume}
-                          onChange={(e) => {
-                            setVolume(parseFloat(e.target.value))
-                            if (isMuted) setIsMuted(false)
-                          }}
-                          className="absolute w-32 h-1.5 rounded-lg appearance-none cursor-pointer accent-emerald-500 -rotate-90 origin-center"
-                          style={{
-                            background: `linear-gradient(to right, ${activeColor} ${(isMuted ? 0 : volume) * 100}%, ${inactiveColor} ${(isMuted ? 0 : volume) * 100}%)`,
-                          }}
-                        />
-                      </div>
-                      <div className="w-full text-center border-t border-gray-100 dark:border-white/10 pt-1">
-                        <span className="text-[10px] font-black text-gray-900 dark:text-white tabular-nums font-mono">
-                          {Math.round(volumePercent)}%
-                        </span>
-                      </div>
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 pb-6 opacity-0 invisible group-hover/volume:opacity-100 group-hover/volume:visible transition-all duration-300 ease-out z-50">
+                  <div className="rounded-2xl flex flex-col items-center gap-2 min-w-[50px] transform origin-bottom transition-transform duration-300 group-hover/volume:scale-100 scale-95 bg-white dark:bg-gray-800 shadow-xl border border-black/5 dark:border-white/10 p-2">
+                    <div className="h-32 w-6 flex items-center justify-center relative">
+                      <input
+                        type="range"
+                        min="0"
+                        max="1"
+                        step="0.01"
+                        value={isMuted ? 0 : volume}
+                        onChange={(e) => {
+                          setVolume(parseFloat(e.target.value))
+                          if (isMuted) setIsMuted(false)
+                        }}
+                        className="absolute w-32 h-1.5 rounded-lg appearance-none cursor-pointer accent-emerald-500 -rotate-90 origin-center"
+                        style={{
+                          background: `linear-gradient(to right, ${activeColor} ${(isMuted ? 0 : volume) * 100}%, ${inactiveColor} ${(isMuted ? 0 : volume) * 100}%)`,
+                        }}
+                      />
+                    </div>
+                    <div className="w-full text-center border-t border-gray-100 dark:border-white/10 pt-1">
+                      <span className="text-[10px] font-black text-gray-900 dark:text-white tabular-nums font-mono">
+                        {Math.round(volumePercent)}%
+                      </span>
                     </div>
                   </div>
                 </div>
-
-                <button 
-                  title="Chế độ cửa sổ"
-                  onClick={() => setIsMiniPlayer(true)}
-                  className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
-                >
-                  <Shrink className="w-4 h-4" />
-                </button>
               </div>
+
+              <button 
+                title="Chế độ cửa sổ"
+                onClick={() => setIsMiniPlayer(true)}
+                className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all"
+              >
+                <Shrink className="w-4 h-4" />
+              </button>
             </div>
           </div>
         </div>
