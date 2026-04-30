@@ -31,18 +31,27 @@ function MusicSidebar() {
                     { id: 'player', icon: ListMusic, color: 'emerald' },
                     { id: 'downloader', icon: Download, color: 'indigo' },
                     { id: 'focus', icon: Brain, color: 'purple' }
-                ].map(item => (
-                    <button
-                        key={item.id}
-                        onClick={() => setTab(item.id)}
-                        className={`cursor-pointer flex-1 py-2 rounded-lg flex items-center justify-center transition-all ${tab === item.id
-                            ? `bg-white dark:bg-${item.color}-500/20 text-${item.color}-600 dark:text-${item.color}-400 shadow-sm`
-                            : 'text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white'
-                            }`}
-                    >
-                        <item.icon className="w-4 h-4" />
-                    </button>
-                ))}
+                ].map(item => {
+                    const activeStyles = {
+                        emerald: 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+                        indigo: 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+                        purple: 'bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400',
+                        rose: 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400'
+                    }
+                    
+                    return (
+                        <button
+                            key={item.id}
+                            onClick={() => setTab(item.id)}
+                            className={`cursor-pointer flex-1 py-2 rounded-lg flex items-center justify-center transition-all ${tab === item.id
+                                ? `${activeStyles[item.color]} shadow-sm`
+                                : 'text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                        >
+                            <item.icon className="w-4 h-4" />
+                        </button>
+                    )
+                })}
             </div>
 
             <div className="flex-1 flex flex-col min-h-0">

@@ -36,23 +36,23 @@ export default function Player() {
   if (isMiniPlayer) {
     return (
       <div className="flex flex-col h-screen w-full bg-white dark:bg-gray-900 overflow-hidden relative">
-        <div 
+        <div
           className="absolute inset-0 bg-cover bg-center blur-2xl opacity-20 pointer-events-none"
           style={{ backgroundImage: currentTrack?.cover ? `url('${currentTrack.cover}')` : 'none' }}
         />
         <div className="relative z-10 flex flex-col items-center justify-between h-full p-3 gap-2">
           <div className="absolute top-2 right-2">
-             <button onClick={() => setIsMiniPlayer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2">
-               <ListMusic className="w-5 h-5" />
-             </button>
+            <button onClick={() => setIsMiniPlayer(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-white p-2">
+              <ListMusic className="w-5 h-5" />
+            </button>
           </div>
 
           <div className="flex-1 w-full flex items-center justify-center min-h-0 pt-8 pb-1">
-            <MusicVisualizer 
+            <MusicVisualizer
               className="w-full h-full max-w-[130px] max-h-[130px] shrink-0"
               cover={currentTrack?.cover}
-              isPlaying={isPlaying} 
-              bassLevel={bassLevel} 
+              isPlaying={isPlaying}
+              bassLevel={bassLevel}
               frequencies={frequencies}
               theme={theme}
             />
@@ -89,11 +89,11 @@ export default function Player() {
 
       <div className="relative z-10 flex-1 w-full overflow-y-auto md:overflow-y-hidden p-4 sm:p-5 lg:p-8 [@media(max-height:600px)]:p-2 flex flex-col no-scrollbar justify-center">
         <div className="w-full max-w-2xl m-auto flex flex-col items-center shrink-0 pt-10">
-          <MusicVisualizer 
+          <MusicVisualizer
             className="music-player-cover mt-4 mb-[clamp(0.5rem,4vh,2rem)] shrink-0"
             cover={currentTrack?.cover}
-            isPlaying={isPlaying} 
-            bassLevel={bassLevel} 
+            isPlaying={isPlaying}
+            bassLevel={bassLevel}
             frequencies={frequencies}
             theme={theme}
           />
@@ -111,11 +111,10 @@ export default function Player() {
             <button
               title="Trộn bài"
               onClick={toggleShuffle}
-              className={`cursor-pointer w-10 h-10 sm:w-12 sm:h-12 [@media(max-height:600px)]:w-8 [@media(max-height:600px)]:h-8 flex items-center justify-center rounded-full transition-all duration-300 ${
-                isShuffle
-                  ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
-              }`}
+              className={`cursor-pointer w-10 h-10 sm:w-12 sm:h-12 [@media(max-height:600px)]:w-8 [@media(max-height:600px)]:h-8 flex items-center justify-center rounded-full transition-all duration-300 ${isShuffle
+                ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
+                }`}
             >
               <Shuffle className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
@@ -138,11 +137,10 @@ export default function Player() {
             <button
               title={repeatMode === 'one' ? 'Tắt lặp lại' : 'Lặp lại 1 bài'}
               onClick={toggleRepeat}
-              className={`cursor-pointer w-10 h-10 sm:w-12 sm:h-12 [@media(max-height:600px)]:w-8 [@media(max-height:600px)]:h-8 flex items-center justify-center rounded-full transition-all duration-300 ${
-                repeatMode === 'one'
-                  ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
-                  : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
-              }`}
+              className={`cursor-pointer w-10 h-10 sm:w-12 sm:h-12 [@media(max-height:600px)]:w-8 [@media(max-height:600px)]:h-8 flex items-center justify-center rounded-full transition-all duration-300 ${repeatMode === 'one'
+                ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white'
+                }`}
             >
               <Repeat1 className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
@@ -180,34 +178,32 @@ export default function Player() {
                 </button>
 
                 <div className="absolute bottom-full left-1/2 -translate-x-1/2 pb-6 opacity-0 invisible group-hover/volume:opacity-100 group-hover/volume:visible transition-all duration-300 ease-out z-50">
-                  <div className="rounded-2xl flex flex-col items-center gap-2 min-w-[50px] transform origin-bottom transition-transform duration-300 group-hover/volume:scale-100 scale-95 bg-white dark:bg-gray-800 shadow-xl border border-black/5 dark:border-white/10 p-2">
-                    <div className="h-32 w-6 flex items-center justify-center relative">
-                      <input
-                        type="range"
-                        min="0"
-                        max="1"
-                        step="0.01"
-                        value={isMuted ? 0 : volume}
-                        onChange={(e) => {
-                          setVolume(parseFloat(e.target.value))
-                          if (isMuted) setIsMuted(false)
-                        }}
-                        className="absolute w-32 h-1.5 rounded-lg appearance-none cursor-pointer accent-emerald-500 -rotate-90 origin-center"
-                        style={{
-                          background: `linear-gradient(to right, ${activeColor} ${(isMuted ? 0 : volume) * 100}%, ${inactiveColor} ${(isMuted ? 0 : volume) * 100}%)`,
-                        }}
-                      />
-                    </div>
-                    <div className="w-full text-center border-t border-gray-100 dark:border-white/10 pt-1">
-                      <span className="text-[10px] font-black text-gray-900 dark:text-white tabular-nums font-mono">
-                        {Math.round(volumePercent)}%
-                      </span>
-                    </div>
+                  <div className="h-32 w-6 flex items-center justify-center relative pb-4">
+                    <input
+                      type="range"
+                      min="0"
+                      max="1"
+                      step="0.01"
+                      value={isMuted ? 0 : volume}
+                      onChange={(e) => {
+                        setVolume(parseFloat(e.target.value))
+                        if (isMuted) setIsMuted(false)
+                      }}
+                      className="absolute w-32 h-1.5 rounded-lg appearance-none cursor-pointer accent-emerald-500 -rotate-90 origin-center"
+                      style={{
+                        background: `linear-gradient(to right, ${activeColor} ${(isMuted ? 0 : volume) * 100}%, ${inactiveColor} ${(isMuted ? 0 : volume) * 100}%)`,
+                      }}
+                    />
+                  </div>
+                  <div className="w-full text-center border-t border-gray-100 dark:border-white/10">
+                    <span className="text-[10px] font-black text-gray-900 dark:text-white tabular-nums font-mono">
+                      {Math.round(volumePercent)}%
+                    </span>
                   </div>
                 </div>
               </div>
 
-              <button 
+              <button
                 title="Chế độ cửa sổ"
                 onClick={() => setIsMiniPlayer(true)}
                 className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 transition-all"

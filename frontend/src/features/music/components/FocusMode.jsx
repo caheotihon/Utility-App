@@ -172,7 +172,6 @@ export default function FocusMode() {
               title={!isActive ? "Nhấn để sửa thời gian" : ""}
             >
               {formatTime(timeLeft)}
-              {!isActive && <Edit2 className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-gray-400" />}
             </span>
           )}
 
@@ -197,7 +196,7 @@ export default function FocusMode() {
 
         <button
           onClick={toggleTimer}
-          className={`p-5 rounded-3xl transition-all shadow-xl hover:scale-105 active:scale-95 ${isActive
+          className={`cursor-pointer p-5 rounded-3xl transition-all shadow-xl hover:scale-105 active:scale-95 ${isActive
             ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400'
             : 'bg-indigo-600 text-white dark:bg-white dark:text-indigo-600'
             }`}
