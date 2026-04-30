@@ -60,11 +60,11 @@ export default function Player() {
 
           <div className="flex flex-col items-center gap-2 w-full shrink-0">
             <div className="flex items-center gap-4">
-            <SkipBack onClick={handlePrev} className="w-5 h-5 cursor-pointer dark:text-white hover:text-indigo-500 transition-colors" />
-            <button onClick={togglePlay} className="w-10 h-10 rounded-full bg-indigo-600 dark:bg-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
-              {isPlaying ? <Pause className="w-5 h-5 fill-current dark:text-gray-900 text-white" /> : <Play className="w-5 h-5 fill-current dark:text-gray-900 text-white ml-0.5" />}
-            </button>
-            <SkipForward onClick={handleNext} className="w-5 h-5 cursor-pointer dark:text-white hover:text-indigo-500 transition-colors" />
+              <SkipBack onClick={handlePrev} className="w-5 h-5 cursor-pointer dark:text-white hover:text-indigo-500 transition-colors" />
+              <button onClick={togglePlay} className="w-10 h-10 rounded-full bg-indigo-600 dark:bg-white flex items-center justify-center shadow-lg hover:scale-105 active:scale-95 transition-all">
+                {isPlaying ? <Pause className="w-5 h-5 fill-current dark:text-gray-900 text-white" /> : <Play className="w-5 h-5 fill-current dark:text-gray-900 text-white ml-0.5" />}
+              </button>
+              <SkipForward onClick={handleNext} className="w-5 h-5 cursor-pointer dark:text-white hover:text-indigo-500 transition-colors" />
             </div>
 
             <div className="w-full px-2 mb-1">
@@ -72,8 +72,8 @@ export default function Player() {
                 <div className="h-full bg-indigo-500 transition-all duration-300" style={{ width: `${progressPercent}%` }} />
               </div>
             </div>
+          </div>
         </div>
-      </div>
       </div>
     )
   }
@@ -88,9 +88,9 @@ export default function Player() {
       <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/95 to-white dark:from-transparent dark:via-gray-900/80 dark:to-gray-900 pointer-events-none z-0" />
 
       <div className="relative z-10 flex-1 w-full overflow-y-auto md:overflow-y-hidden p-4 sm:p-5 lg:p-8 [@media(max-height:600px)]:p-2 flex flex-col no-scrollbar justify-center">
-        <div className="w-full max-w-2xl m-auto flex flex-col items-center shrink-0">
+        <div className="w-full max-w-2xl m-auto flex flex-col items-center shrink-0 pt-10">
           <MusicVisualizer 
-            className="music-player-cover mb-[clamp(0.5rem,4vh,2rem)] shrink-0"
+            className="music-player-cover mt-4 mb-[clamp(0.5rem,4vh,2rem)] shrink-0"
             cover={currentTrack?.cover}
             isPlaying={isPlaying} 
             bassLevel={bassLevel} 
