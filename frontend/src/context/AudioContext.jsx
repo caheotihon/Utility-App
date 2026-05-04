@@ -260,8 +260,12 @@ export function AudioProvider({ children }) {
 
     // Track history and stats
     const now = new Date()
-    const dateStr = now.toLocaleDateString()
-    
+    // Chuẩn hóa thành DD/MM/YYYY để CalendarPicker parse đúng
+    const dd = String(now.getDate()).padStart(2, '0')
+    const mm = String(now.getMonth() + 1).padStart(2, '0')
+    const yyyy = now.getFullYear()
+    const dateStr = `${dd}/${mm}/${yyyy}`
+
     setPlayHistory(prev => [{
       file: track.file,
       title: track.title,

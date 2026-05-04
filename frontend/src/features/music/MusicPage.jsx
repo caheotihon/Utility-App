@@ -6,6 +6,19 @@ import FocusMode from './components/FocusMode'
 import { ListMusic, Download, Brain } from 'lucide-react'
 import { useAudioPlayback } from '../../context/AudioContext'
 
+const TABS = [
+    { id: 'player', icon: ListMusic, color: 'emerald' },
+    { id: 'downloader', icon: Download, color: 'indigo' },
+    { id: 'focus', icon: Brain, color: 'purple' }
+]
+
+const ACTIVE_STYLES = {
+    emerald: 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+    indigo: 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+    purple: 'bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400',
+    rose: 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400'
+}
+
 function MusicSidebar() {
     const [tab, setTab] = useState(() => localStorage.getItem('musicActiveTab') || 'player')
     const { isMiniPlayer } = useAudioPlayback()
@@ -31,31 +44,18 @@ function MusicSidebar() {
             shadow-[0_16px_40px_rgba(0,0,0,0.06)] dark:shadow-[0_16px_40px_rgba(0,0,0,0.25)]
         ">
             <div className="flex gap-1 mb-4 shrink-0 bg-gray-100/50 dark:bg-gray-900/50 p-1 rounded-xl">
-                {[
-                    { id: 'player', icon: ListMusic, color: 'emerald' },
-                    { id: 'downloader', icon: Download, color: 'indigo' },
-                    { id: 'focus', icon: Brain, color: 'purple' }
-                ].map(item => {
-                    const activeStyles = {
-                        emerald: 'bg-emerald-50 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400',
-                        indigo: 'bg-indigo-50 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400',
-                        purple: 'bg-purple-50 dark:bg-purple-500/20 text-purple-600 dark:text-purple-400',
-                        rose: 'bg-rose-50 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400'
-                    }
-                    
-                    return (
-                        <button
-                            key={item.id}
-                            onClick={() => setTab(item.id)}
-                            className={`cursor-pointer flex-1 py-2 rounded-lg flex items-center justify-center transition-all ${tab === item.id
-                                ? `${activeStyles[item.color]} shadow-sm`
-                                : 'text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white'
-                                }`}
-                        >
-                            <item.icon className="w-4 h-4" />
-                        </button>
-                    )
-                })}
+                {TABS.map(item => (
+                    <button
+                        key={item.id}
+                        onClick={() => setTab(item.id)}
+                        className={`cursor-pointer flex-1 py-2 rounded-lg flex items-center justify-center transition-all ${tab === item.id
+                            ? `${ACTIVE_STYLES[item.color]} shadow-sm`
+                            : 'text-gray-400 dark:text-gray-500 hover:text-gray-900 dark:hover:text-white'
+                            }`}
+                    >
+                        <item.icon className="w-4 h-4" />
+                    </button>
+                ))}
             </div>
 
             <div className="flex-1 flex flex-col min-h-0">

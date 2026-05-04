@@ -1,25 +1,37 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useAudioPlayback } from '../../../context/AudioContext'
 import { History, Clock, PlayCircle, Music } from 'lucide-react'
-import CalendarPicker from "../../../components/CalendarPicker";
 
 export default function MusicHistory() {
   const { playHistory } = useAudioPlayback()
 
-  // Xử lý dữ liệu nhóm theo ngày
-  const groupedHistory = (playHistory || []).reduce((acc, track) => {
-    const date = track.date
-    if (!acc[date]) acc[date] = []
-    acc[date].push(track)
-    return acc
-  }, {})
+  // Xử lý dữ liệu: Nhóm theo ngày và CHỈ LẤY 10 NGÀY GẦN NHẤT
+  const { groupedHistory, dates } = useMemo(() => {
+    const grouped = (playHistory || []).reduce((acc, track) => {
+      const date = track.date
+      if (!acc[date]) acc[date] = []
+      acc[date].push(track)
+      return acc
+    }, {})
 
-  const dates = Object.keys(groupedHistory)
+    // Sắp xếp các ngày từ MỚI NHẤT -> CŨ NHẤT để thanh trượt luôn hiển thị ngày gần đây lên đầu
+    const sortedDates = Object.keys(grouped).sort((a, b) => {
+      const [d1, m1, y1] = a.split('/')
+      const [d2, m2, y2] = b.split('/')
+      return new Date(`${y2}-${m2}-${d2}`) - new Date(`${y1}-${m1}-${d1}`)
+    })
+
+    // CHỐT HẠ: Chỉ lấy đúng 10 ngày đầu tiên (10 ngày gần nhất)
+    const recent10Dates = sortedDates.slice(0, 10)
+
+    return { groupedHistory: grouped, dates: recent10Dates }
+  }, [playHistory])
+
   const [activeDate, setActiveDate] = useState(dates[0] || null)
 
   // Cập nhật activeDate nếu có dữ liệu mới
   useEffect(() => {
-    if (!activeDate && dates.length > 0) {
+    if (dates.length > 0 && !dates.includes(activeDate)) {
       setActiveDate(dates[0])
     }
   }, [dates, activeDate])
@@ -39,7 +51,7 @@ export default function MusicHistory() {
               Lịch sử phát nhạc
             </h3>
             <p className="text-[10px] font-medium text-gray-500 dark:text-gray-400 uppercase tracking-widest mt-0.5 transition-colors">
-              {playHistory?.length || 0} bài hát đã nghe
+              10 ngày gần nhất
             </p>
           </div>
         </div>
@@ -57,11 +69,9 @@ export default function MusicHistory() {
         </div>
       ) : (
         <>
-          {/* SLIDER CHỌN NGÀY & COMPONENT NÚT LỊCH */}
-          <div className="shrink-0 flex items-center gap-2 px-2 pb-4">
-
-            {/* Vùng cuộn ngang */}
-            <div className="flex-1 flex items-center gap-2 overflow-x-auto no-scrollbar scroll-smooth snap-x">
+          {/* SLIDER CHỌN NGÀY (Cái trượt trượt) */}
+          <div className="shrink-0 flex items-center px-2 pb-4 border-b border-transparent">
+            <div className="flex-1 flex items-center gap-2 overflow-x-auto scrollbar-custom scroll-smooth snap-x pb-2">
               {dates.map((date) => (
                 <button
                   key={date}
@@ -77,21 +87,13 @@ export default function MusicHistory() {
                 </button>
               ))}
             </div>
-
-            {/* Gọi Component DateDropdown ở đây */}
-            <CalendarPicker
-              dates={dates}
-              activeDate={activeDate}
-              onSelectDate={setActiveDate}
-            />
-
           </div>
 
           {/* DANH SÁCH BÀI HÁT */}
-          <div className="flex-1 overflow-y-auto scrollbar-custom px-2 pb-10">
-            <div className="relative mt-2 ml-4 border-l-2 border-dashed border-gray-200 dark:border-white/10 space-y-4 pb-6 transition-colors">
+          <div className="flex-1 overflow-y-auto scrollbar-custom px-2 pb-10 mt-2">
+            <div className="relative ml-4 border-l-2 border-dashed border-gray-200 dark:border-white/10 space-y-4 pb-6 transition-colors">
               {activeTracks.map((track, i) => (
-                <div key={`${track.timestamp}-${i}`} className="relative pl-6 group animate-in fade-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${i * 50}ms` }}>
+                <div key={`${track.timestamp}-${i}`} className="relative pl-6 group animate-in fade-in slide-in-from-right-4 duration-300" style={{ animationDelay: `${i * 30}ms` }}>
 
                   {/* Dấu chấm Timeline */}
                   <div className="absolute -left-[5px] top-4 w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600 group-hover:bg-emerald-500 dark:group-hover:bg-emerald-400 transition-colors ring-4 ring-white dark:ring-[#0b0e14] group-hover:ring-emerald-100 dark:group-hover:ring-emerald-400/20" />

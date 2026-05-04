@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAudioActions, useAudioPlayback } from '../../../context/AudioContext'
-import { Timer, Coffee, Play, Pause, RotateCcw, Brain, Edit2 } from 'lucide-react'
+import { Timer, Coffee, Play, Pause, RotateCcw, Brain } from 'lucide-react'
 
 export default function FocusMode() {
   const [mode, setMode] = useState(() => localStorage.getItem('focus_mode') || 'focus')
@@ -19,18 +19,13 @@ export default function FocusMode() {
   const { isPlaying } = useAudioPlayback()
   const intervalRef = useRef(null)
 
-  // Dùng ref để giữ giá trị mode mới nhất trong setInterval (tránh lỗi Stale Closure của React)
   const modeRef = useRef(mode)
   useEffect(() => { modeRef.current = mode }, [mode])
 
-  // Sync state cơ bản xuống localStorage
-  useEffect(() => {
-    localStorage.setItem('focus_mode', mode)
-    localStorage.setItem('focus_isActive', isActive)
-    localStorage.setItem('focus_timeLeft', timeLeft)
-  }, [mode, isActive, timeLeft])
+  // CHỈ LƯU các state ít thay đổi (Không lưu timeLeft ở đây nữa để tránh giật lag)
+  useEffect(() => { localStorage.setItem('focus_mode', mode) }, [mode])
+  useEffect(() => { localStorage.setItem('focus_isActive', isActive) }, [isActive])
 
-  // Hàm xử lý khi hết giờ (Đưa ra ngoài để gọi từ nhiều nơi)
   const handleTimerComplete = () => {
     setIsActive(false)
     clearInterval(intervalRef.current)
@@ -45,7 +40,6 @@ export default function FocusMode() {
     }
   }
 
-  // Chạy khi khởi động: Kiểm tra xem có đang chạy dở ở tab/trạng thái trước không
   useEffect(() => {
     const savedEndTime = localStorage.getItem('focus_endTime')
     const savedIsActive = localStorage.getItem('focus_isActive') === 'true'
@@ -62,14 +56,12 @@ export default function FocusMode() {
         handleTimerComplete()
       }
     }
-  }, []) // Chỉ chạy 1 lần khi render
+  }, [])
 
-  // Timer logic - Chống được cả Reload lẫn Switch Tab
   useEffect(() => {
     if (isActive && timeLeft > 0) {
       let expectedEnd = parseInt(localStorage.getItem('focus_endTime'), 10)
 
-      // Nếu chưa có expectedEnd, tạo mới
       if (!expectedEnd || isNaN(expectedEnd)) {
         expectedEnd = Date.now() + timeLeft * 1000
         localStorage.setItem('focus_endTime', expectedEnd.toString())
@@ -83,29 +75,35 @@ export default function FocusMode() {
         if (remaining <= 0) {
           handleTimerComplete()
         }
-      }, 500)
+      }, 1000)
 
     } else if (!isActive) {
       clearInterval(intervalRef.current)
+      // KHẮC PHỤC GIẬT LAG: Chỉ lưu timeLeft khi timer không active (Pause)
+      localStorage.setItem('focus_timeLeft', timeLeft)
       localStorage.removeItem('focus_endTime')
     }
 
     return () => clearInterval(intervalRef.current)
-    // Bỏ timeLeft khỏi dependency để không bị cấp phát lại expectedEnd khi re-render
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isActive])
 
   const switchMode = (newMode) => {
+    const defaultTime = newMode === 'focus' ? 25 * 60 : 5 * 60
     setMode(newMode)
-    setTimeLeft(newMode === 'focus' ? 25 * 60 : 5 * 60)
+    setTimeLeft(defaultTime)
     setIsActive(false)
+
+    // Lưu ngay khi chuyển chế độ
+    localStorage.setItem('focus_timeLeft', defaultTime)
     localStorage.removeItem('focus_endTime')
   }
 
   const toggleTimer = () => {
-    if (isEditing) return // Ngăn bật khi đang gõ chữ
+    if (isEditing) return
     const nextActive = !isActive
     setIsActive(nextActive)
+
     if (nextActive && !isPlaying) {
       togglePlay()
     }
@@ -113,11 +111,14 @@ export default function FocusMode() {
 
   const resetTimer = () => {
     setIsActive(false)
-    setTimeLeft(mode === 'focus' ? 25 * 60 : 5 * 60)
+    const defaultTime = mode === 'focus' ? 25 * 60 : 5 * 60
+    setTimeLeft(defaultTime)
+
+    // Lưu ngay khi reset
+    localStorage.setItem('focus_timeLeft', defaultTime)
     localStorage.removeItem('focus_endTime')
   }
 
-  // --- LOGIC NHẬP THỜI GIAN ---
   const handleTimeClick = () => {
     if (!isActive) {
       setInputMinutes(Math.floor(timeLeft / 60).toString())
@@ -129,7 +130,11 @@ export default function FocusMode() {
     setIsEditing(false)
     const mins = parseInt(inputMinutes, 10)
     if (!isNaN(mins) && mins > 0) {
-      setTimeLeft(mins * 60)
+      const newTime = mins * 60
+      setTimeLeft(newTime)
+
+      // Lưu ngay khi sửa tay xong
+      localStorage.setItem('focus_timeLeft', newTime)
     }
   }
 
@@ -148,8 +153,6 @@ export default function FocusMode() {
 
       <div className="relative flex items-center justify-center group">
         <div className="w-48 h-48 rounded-full border-4 border-gray-100 dark:border-white/5 flex flex-col items-center justify-center shadow-inner bg-white/50 dark:bg-black/5 backdrop-blur-sm transition-colors">
-
-          {/* Nhập/Hiển thị số liệu */}
           {isEditing ? (
             <input
               type="number"
@@ -181,14 +184,14 @@ export default function FocusMode() {
         </div>
 
         {isActive && (
-          <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 animate-ping" />
+          <div className="absolute inset-0 rounded-full border-4 border-indigo-500/20 animate-ping" style={{ animationDuration: '3s' }} />
         )}
       </div>
 
       <div className="flex items-center gap-4">
         <button
           onClick={resetTimer}
-          className="p-3 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all hover:scale-110 active:scale-95"
+          className="p-3 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all hover:scale-110 active:scale-95 cursor-pointer"
           title="Reset"
         >
           <RotateCcw className="w-5 h-5" />
@@ -206,7 +209,7 @@ export default function FocusMode() {
 
         <button
           onClick={() => switchMode(mode === 'focus' ? 'break' : 'focus')}
-          className="p-3 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all hover:scale-110 active:scale-95"
+          className="p-3 rounded-2xl bg-gray-100 dark:bg-white/5 text-gray-500 hover:text-gray-900 dark:hover:text-white transition-all hover:scale-110 active:scale-95 cursor-pointer"
           title={mode === 'focus' ? 'Chuyển sang nghỉ ngơi' : 'Chuyển sang tập trung'}
         >
           {mode === 'focus' ? <Coffee className="w-5 h-5" /> : <Timer className="w-5 h-5" />}

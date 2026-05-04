@@ -22,12 +22,6 @@ export default function Layout({ children, activeFeature, setActiveFeature }) {
         }
     }, [avatarSrc]);
 
-    useEffect(() => {
-        if (!isProfileOpen) {
-            setUserName(localStorage.getItem('user_name') || 'Tài Konn');
-        }
-    }, [isProfileOpen]);
-
 
 
     return (
@@ -131,6 +125,7 @@ export default function Layout({ children, activeFeature, setActiveFeature }) {
                 onClose={() => setIsProfileOpen(false)}
                 avatarSrc={avatarSrc}
                 onAvatarUpdate={setAvatarSrc}
+                onNameUpdate={setUserName}
             />
         </div>
     )

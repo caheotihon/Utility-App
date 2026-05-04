@@ -1,38 +1,33 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
 
+// Hoist ra ngoài component — không có closure, tạo đúng 1 lần
+const parseDateStr = (str) => {
+    if (!str) return null
+    const parts = str.split(/[-/]/)
+    if (parts.length !== 3) return null
+
+    let d, m, y
+    const p0 = parseInt(parts[0], 10)
+    const p1 = parseInt(parts[1], 10)
+    const p2 = parseInt(parts[2], 10)
+
+    if (parts[0].length === 4) { // YYYY-MM-DD
+        y = p0; m = p1; d = p2
+    } else if (parts[2].length === 4) { // DD/MM/YYYY hoặc MM/DD/YYYY
+        y = p2
+        if (p0 > 12) { d = p0; m = p1 }      // Chắc chắn DD/MM
+        else if (p1 > 12) { m = p0; d = p1 }  // Chắc chắn MM/DD
+        else { d = p0; m = p1 }               // Mặc định DD/MM (VN)
+    }
+    return { y, m, d }
+}
+
 export default function CalendarPicker({ dates = [], activeDate, onSelectDate }) {
     const [isOpen, setIsOpen] = useState(false)
 
     // Lấy ngày hiện tại để hiển thị lịch ban đầu
     const [viewDate, setViewDate] = useState(new Date())
-
-    // Helper để phân tích chuỗi ngày thành object {y, m, d}
-    const parseDateStr = (str) => {
-        if (!str) return null
-        const parts = str.split(/[-/]/)
-        if (parts.length !== 3) return null
-        
-        let d, m, y
-        const p0 = parseInt(parts[0], 10)
-        const p1 = parseInt(parts[1], 10)
-        const p2 = parseInt(parts[2], 10)
-
-        if (parts[0].length === 4) { // YYYY-MM-DD
-            y = p0; m = p1; d = p2
-        } else if (parts[2].length === 4) { // DD/MM/YYYY hoặc MM/DD/YYYY
-            y = p2
-            if (p0 > 12) { // Chắc chắn là DD/MM/YYYY
-                d = p0; m = p1
-            } else if (p1 > 12) { // Chắc chắn là MM/DD/YYYY
-                m = p0; d = p1
-            } else {
-                // Mặc định là DD/MM/YYYY (phổ biến ở VN)
-                d = p0; m = p1
-            }
-        }
-        return { y, m, d }
-    }
 
     // FIX LỖI: Chuẩn hóa dữ liệu ngày tháng để so sánh chính xác 100%
     const dateMap = useMemo(() => {
@@ -40,7 +35,6 @@ export default function CalendarPicker({ dates = [], activeDate, onSelectDate })
         dates.forEach(originalDateStr => {
             const parsed = parseDateStr(originalDateStr)
             if (parsed) {
-                // Lưu thành key "YYYY-M-D" trỏ tới chuỗi gốc
                 map.set(`${parsed.y}-${parsed.m}-${parsed.d}`, originalDateStr)
             }
         })

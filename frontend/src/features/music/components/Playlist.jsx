@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Search, ListMusic, Heart, Trash2 } from 'lucide-react'
 import { useAudioLibrary, useAudioActions } from '../../../context/AudioContext'
 import ConfirmModal from '../../../components/ConfirmModal'
@@ -10,12 +10,25 @@ export default function Playlist() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [trackToDelete, setTrackToDelete] = useState(null)
 
-  const filteredPlaylist = playlist.filter(track => {
-    const matchesSearch = track.title.toLowerCase().includes(search.toLowerCase()) ||
-      track.artist.toLowerCase().includes(search.toLowerCase());
-    const matchesFavorite = isOnlyFavorites ? favorites.includes(track.file) : true;
-    return matchesSearch && matchesFavorite;
-  })
+  const filteredPlaylist = useMemo(() => {
+    const favoriteSet = new Set(favorites)
+    return playlist.filter(track => {
+      const matchesSearch = track.title.toLowerCase().includes(search.toLowerCase()) ||
+        track.artist.toLowerCase().includes(search.toLowerCase())
+      const matchesFavorite = isOnlyFavorites ? favoriteSet.has(track.file) : true
+      return matchesSearch && matchesFavorite
+    })
+  }, [playlist, search, favorites, isOnlyFavorites])
+
+  // Map file -> index trong playlist gốc để tránh O(n) findIndex trong render
+  const fileIndexMap = useMemo(() => {
+    const map = new Map()
+    playlist.forEach((t, i) => map.set(t.file, i))
+    return map
+  }, [playlist])
+
+  // Set yêu thích để lookup O(1)
+  const favoriteSet = useMemo(() => new Set(favorites), [favorites])
 
   const handleDeleteClick = (e, track) => {
     e.stopPropagation();
@@ -58,8 +71,9 @@ export default function Playlist() {
 
       <div className="flex-1 max-h-[400px] md:max-h-none md:h-auto overflow-y-auto space-y-2 pr-1 scrollbar-custom">
         {filteredPlaylist.map((track) => {
-          const originalIndex = playlist.findIndex(t => t.file === track.file)
+          const originalIndex = fileIndexMap.get(track.file) ?? -1
           const isActive = originalIndex === currentTrackIndex
+          const isFav = favoriteSet.has(track.file)
 
           return (
             <div
@@ -104,13 +118,13 @@ export default function Playlist() {
                       e.stopPropagation();
                       toggleFavorite(track.file);
                     }}
-                    title={favorites.includes(track.file) ? "Bỏ yêu thích" : "Yêu thích"}
-                    className={`cursor-pointer p-1.5 transition-all outline-none transform hover:scale-125 ${favorites.includes(track.file)
+                    title={isFav ? "Bỏ yêu thích" : "Yêu thích"}
+                    className={`cursor-pointer p-1.5 transition-all outline-none transform hover:scale-125 ${isFav
                       ? 'text-rose-500 opacity-100'
                       : 'text-gray-400 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-rose-500'
                       }`}
                   >
-                    <Heart className={`w-3.5 h-3.5 ${favorites.includes(track.file) ? 'fill-current' : ''}`} />
+                    <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
                   </button>
                 </div>
 

@@ -1,30 +1,26 @@
+import { useMemo } from 'react'
 import { useAudioPlayback } from '../../../context/AudioContext'
 import { TrendingUp, Music, Crown, Flame, BarChart2 } from 'lucide-react'
+
+// Hoạch định style theo rank — họi ra ngoài component để không tạo lại mỗi render
+const RANK_STYLES = [
+  'bg-yellow-100 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400 ring-2 ring-yellow-400/50 shadow-sm',
+  'bg-gray-200 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400 ring-1 ring-gray-400/50',
+  'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 ring-1 ring-orange-400/50',
+]
+const getRankStyle = (index) => RANK_STYLES[index] ?? 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400'
 
 export default function MusicStats() {
   const { playStats } = useAudioPlayback()
 
-  // Sắp xếp và lấy Top 10
-  const sortedStats = Object.entries(playStats || {})
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 10)
-
-  // Lấy số lượt nghe cao nhất (của bài Top 1) để làm mốc tính độ dài thanh Progress
-  const maxCount = sortedStats.length > 0 ? sortedStats[0][1] : 1
-
-  // Hàm tạo style riêng cho Top 1, 2, 3
-  const getRankStyle = (index) => {
-    switch (index) {
-      case 0:
-        return 'bg-yellow-100 text-yellow-600 dark:bg-yellow-500/20 dark:text-yellow-400 ring-2 ring-yellow-400/50 shadow-sm'
-      case 1:
-        return 'bg-gray-200 text-gray-600 dark:bg-gray-500/20 dark:text-gray-400 ring-1 ring-gray-400/50'
-      case 2:
-        return 'bg-orange-100 text-orange-600 dark:bg-orange-500/20 dark:text-orange-400 ring-1 ring-orange-400/50'
-      default:
-        return 'bg-gray-100 text-gray-500 dark:bg-white/5 dark:text-gray-400'
-    }
-  }
+  // Sắp xếp và lấy Top 10 (chỉ tính lại khi playStats thay đổi)
+  const { sortedStats, maxCount } = useMemo(() => {
+    const sorted = Object.entries(playStats || {})
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+    const max = sorted.length > 0 ? sorted[0][1] : 1
+    return { sortedStats: sorted, maxCount: max }
+  }, [playStats])
 
   return (
     <div className="flex flex-col h-full overflow-hidden bg-transparent">

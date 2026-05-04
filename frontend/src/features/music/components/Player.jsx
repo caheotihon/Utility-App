@@ -2,6 +2,14 @@ import { useAudioPlayback, useAudioActions } from '../../../context/AudioContext
 import { Shuffle, SkipBack, Play, Pause, SkipForward, Repeat1, Volume2, VolumeX, ListMusic, Music, Shrink } from 'lucide-react'
 import { useTheme } from '../../../context/ThemeContext'
 import MusicVisualizer from './MusicVisualizer'
+import { useCallback, useMemo } from 'react'
+
+const formatTime = (sec) => {
+  if (isNaN(sec) || !isFinite(sec)) return '0:00'
+  const m = Math.floor(sec / 60)
+  const s = Math.floor(sec % 60)
+  return `${m}:${s < 10 ? '0' : ''}${s}`
+}
 
 export default function Player() {
   const { theme } = useTheme()
@@ -17,16 +25,9 @@ export default function Player() {
     setIsMiniPlayer
   } = useAudioActions()
 
-  const formatTime = (sec) => {
-    if (isNaN(sec) || !isFinite(sec)) return '0:00'
-    const m = Math.floor(sec / 60)
-    const s = Math.floor(sec % 60)
-    return `${m}:${s < 10 ? '0' : ''}${s}`
-  }
-
-  const handleSeek = (e) => {
+  const handleSeek = useCallback((e) => {
     seek(Number(e.target.value))
-  }
+  }, [seek])
 
   const progressPercent = duration ? (currentTime / duration) * 100 : 0
   const volumePercent = isMuted ? 0 : volume * 100

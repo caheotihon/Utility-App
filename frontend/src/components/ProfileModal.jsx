@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Camera, X, User, Check, Edit2 } from 'lucide-react';
 
-export default function ProfileModal({ isOpen, onClose, avatarSrc, onAvatarUpdate }) {
+export default function ProfileModal({ isOpen, onClose, avatarSrc, onAvatarUpdate, onNameUpdate }) {
     const fileInputRef = useRef(null);
     const [userName, setUserName] = useState(() => {
         return localStorage.getItem('user_name') || 'Tài Konn';
@@ -27,6 +27,7 @@ export default function ProfileModal({ isOpen, onClose, avatarSrc, onAvatarUpdat
     const handleSaveName = () => {
         if (tempName.trim()) {
             setUserName(tempName);
+            onNameUpdate?.(tempName); // Thông báo ngược cho Layout không cần re-read localStorage
             setIsEditing(false);
         }
     };
