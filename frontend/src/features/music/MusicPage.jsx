@@ -1,15 +1,9 @@
-import { useMemo } from 'react'
 import MainPlayerView from './components/MainPlayerView'
 import QueuePanel from './components/QueuePanel'
 import LibraryView from './components/LibraryView'
-import { useAudioPlayback } from '../../context/AudioContext'
 import Downloader from './components/Downloader'
 
-export default function MusicPage({ activeTab }) {
-    const { currentTrack } = useAudioPlayback()
-
-    // Nếu không có bài hát đang phát và tab là now_playing, tự động chuyển về home (logic này có thể để sau)
-    
+export default function MusicPage({ activeTab, setActiveTab }) {
     return (
         <div className="w-full h-full flex overflow-hidden">
             {activeTab === 'now_playing' ? (
@@ -28,7 +22,7 @@ export default function MusicPage({ activeTab }) {
                 </div>
             ) : (
                 <div className="flex-1 p-6 overflow-y-auto">
-                    <LibraryView activeTab={activeTab} />
+                    <LibraryView activeTab={activeTab} setActiveTab={setActiveTab} />
                 </div>
             )}
         </div>

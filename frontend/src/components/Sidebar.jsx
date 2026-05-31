@@ -8,7 +8,9 @@ export default function Sidebar({ activeTab, setActiveTab }) {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
 
     const handleCreate = (name) => {
-        createPlaylist?.(name)
+        createPlaylist?.(name, (pl) => {
+            setActiveTab?.(`playlist_${pl.id}`)
+        })
     }
 
     return (

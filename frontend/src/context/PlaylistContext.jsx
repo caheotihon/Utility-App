@@ -32,11 +32,13 @@ export function PlaylistProvider({ children }) {
         return () => window.removeEventListener('eelReady', handleEelReady)
     }, [fetchPlaylists])
 
-    const createPlaylist = useCallback((name) => {
+    const createPlaylist = useCallback((name, onCreated) => {
         if (!window.eel) return
         window.eel.create_playlist(name)((pl) => {
             if (pl) {
                 setPlaylists(prev => [...prev, pl])
+                setActivePlaylistId(pl.id)
+                onCreated?.(pl)
             }
         })
     }, [])
@@ -74,6 +76,20 @@ export function PlaylistProvider({ children }) {
         })
     }, [fetchPlaylists])
 
+    const getPlaylistDetail = useCallback((playlistId, onDone) => {
+        if (!window.eel) return
+        window.eel.get_playlist_detail(playlistId)((data) => {
+            onDone?.(data || null)
+        })
+    }, [])
+
+    const getPlaylistSongs = useCallback((playlistId, onDone) => {
+        if (!window.eel) return
+        window.eel.get_playlist_songs(playlistId)((data) => {
+            onDone?.(Array.isArray(data) ? data : [])
+        })
+    }, [])
+
     return (
         <PlaylistContext.Provider value={{
             playlists,
@@ -86,6 +102,8 @@ export function PlaylistProvider({ children }) {
             renamePlaylist,
             addSongToPlaylist,
             removeSongFromPlaylist,
+            getPlaylistDetail,
+            getPlaylistSongs,
         }}>
             {children}
         </PlaylistContext.Provider>

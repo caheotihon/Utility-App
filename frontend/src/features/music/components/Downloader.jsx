@@ -31,88 +31,99 @@ export default function Downloader() {
     }
   }
 
-  // Refactor logic style để clean hơn
+  // Cấu hình style trạng thái trực quan, bo mịn màng hơn
   const getStatusConfig = () => {
+    if (!downloadStatus) return { container: '', icon: null }
     const s = downloadStatus.toLowerCase()
+    
     if (s.includes('✅') || s.includes('hoàn tất') || s.includes('thành công')) {
       return {
-        container: 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-100 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-400',
-        icon: <CheckCircle2 className="w-4 h-4" />
+        container: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400',
+        icon: <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
       }
     }
     if (s.includes('❌') || s.includes('⚠️') || s.includes('lỗi')) {
       return {
-        container: 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 text-rose-700 dark:text-rose-400',
-        icon: <AlertCircle className="w-4 h-4" />
+        container: 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400',
+        icon: <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
       }
     }
     return {
-      container: 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-100 dark:border-indigo-500/20 text-indigo-700 dark:text-indigo-400',
-      icon: <Loader2 className="w-4 h-4 animate-spin" />
+      container: 'bg-indigo-500/10 border-indigo-500/20 text-indigo-600 dark:text-indigo-400',
+      icon: <Loader2 className="w-4 h-4 animate-spin text-indigo-500 shrink-0" />
     }
   }
 
   const status = getStatusConfig()
 
   return (
-    <div className="music-panel-shell flex flex-col gap-4">
-      <header className="flex items-center justify-between shrink-0">
-        <h2 className="music-panel-title text-sm font-bold flex items-center gap-2 text-gray-900 dark:text-white uppercase tracking-wider">
+    <div className="w-full flex flex-col gap-5 p-1 select-none animate-in fade-in-50 duration-300">
+      {/* Header Panel */}
+      <header className="flex items-center justify-between border-b border-black/5 dark:border-white/5 pb-3 shrink-0">
+        <h2 className="text-sm lg:text-xl font-black flex items-center gap-2 text-gray-900 dark:text-white uppercase tracking-wider">
           <DownloadCloud className="w-5 h-5 text-indigo-500" /> Tải nhạc mới
         </h2>
-        <span className="music-panel-badge text-[10px] bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2 py-0.5 rounded-full font-bold">YouTube MP3</span>
+        <span className="text-[10px] sm:text-xs bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-lg font-bold tracking-tight">
+          YouTube MP3
+        </span>
       </header>
 
-      <div className="relative group">
-  <textarea
-    ref={textareaRef}
-    value={urls}
-    onChange={(e) => setUrls(e.target.value)}
-    className="
-      music-panel-textarea
-      w-full p-4 rounded-2xl 
-      bg-white dark:bg-[#10182880] 
-      border border-black/[0.03] dark:border-white/10 
-      placeholder-gray-400 dark:placeholder-gray-600 
-      focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/50 
-      transition-all text-sm shrink-0 shadow-sm 
-      text-gray-900 dark:text-white
-      
-      /* Cấu hình scroll cũ nhưng thêm class mới */
-      resize-none 
-      min-h-[100px] 
-      max-h-[250px] 
-      overflow-y-auto 
-      scrollbar-custom
-      leading-relaxed
-    "
-    placeholder="Dán link YouTube tại đây (mỗi dòng 1 link)..."
-  />
-  <Music2 className="absolute right-4 bottom-4 w-5 h-5 text-gray-200 dark:text-gray-700 pointer-events-none group-focus-within:text-indigo-500/20 transition-colors" />
-</div>
+      {/* Vùng Textarea nhập liệu */}
+      <div className="relative group w-full">
+        <textarea
+          ref={textareaRef}
+          value={urls}
+          onChange={(e) => setUrls(e.target.value)}
+          className="
+            w-full p-4 pr-12 rounded-2xl 
+            bg-gray-50/50 dark:bg-[#161b26] 
+            border border-black/5 dark:border-white/10 
+            placeholder-gray-400 dark:placeholder-gray-500 
+            focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500/40 focus:bg-white dark:focus:bg-[#111622]
+            transition-all text-sm shrink-0 shadow-inner
+            text-gray-900 dark:text-white
+            resize-none 
+            min-h-[110px] 
+            max-h-[220px] 
+            overflow-y-auto 
+            scrollbar-none
+            leading-relaxed
+          "
+          placeholder="Dán một hoặc nhiều link video YouTube tại đây (Mỗi dòng một link)..."
+        />
+        <Music2 className="absolute right-4 bottom-4 w-5 h-5 text-gray-300 dark:text-gray-600 pointer-events-none group-focus-within:text-indigo-500/30 group-focus-within:scale-110 transition-all duration-300" />
+      </div>
 
-      <div className="music-panel-actions grid grid-cols-1 gap-3">
+      {/* Khu vực nút bấm: Đã chuyển sang hàng ngang cho gọn đẹp */}
+      <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
         <button
+          title="Bắt đầu tải danh sách liên kết từ YouTube về máy"
           onClick={handleDownload}
-          className="w-full bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white font-bold py-3.5 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-200 dark:shadow-none"
+          className="w-full sm:flex-[2] bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold py-3.5 px-6 rounded-2xl transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-600/10 dark:shadow-none text-sm tracking-wide"
         >
           <Download className="w-4 h-4" /> Tải ngay
         </button>
 
         <button
-          onClick={() => { refreshPlaylist(); setDownloadStatus('✅ Đã cập nhật thư viện'); }}
-          className="w-full bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 active:scale-95 text-gray-600 dark:text-gray-300 py-3 rounded-2xl transition-all text-sm font-bold flex items-center justify-center gap-2 cursor-pointer border border-black/[0.03] dark:border-white/5"
+          title="Quét lại thư mục nhạc để cập nhật bài hát mới tải vào danh sách"
+          onClick={() => { refreshPlaylist(); setDownloadStatus('✅ Đã cập nhật thư viện thành công!'); }}
+          className="w-full sm:flex-1 bg-white dark:bg-white/5 hover:bg-gray-50 dark:hover:bg-white/10 active:scale-[0.98] text-gray-600 dark:text-gray-300 py-3.5 px-4 rounded-2xl transition-all text-sm font-bold flex items-center justify-center gap-2 cursor-pointer border border-black/5 dark:border-white/5 shadow-sm"
         >
           <RefreshCw className="w-4 h-4" /> Làm mới
         </button>
       </div>
 
+      {/* Hộp thông báo trạng thái tải tiến trình */}
       {downloadStatus && (
-        <div className={`music-panel-status p-4 rounded-2xl flex items-start gap-3 border animate-in slide-in-from-bottom-2 duration-300 ${status.container}`}>
+        <div className={`p-4 rounded-2xl flex items-start gap-3 border backdrop-blur-md animate-in slide-in-from-bottom-3 duration-300 ${status.container}`}>
           <div className="mt-0.5">{status.icon}</div>
-          <div className="flex-1 text-xs font-bold leading-relaxed">{downloadStatus}</div>
-          <button onClick={() => setDownloadStatus('')} className="hover:scale-110 transition-transform">
-            <X className="w-4 h-4 opacity-50 hover:opacity-100" />
+          <div className="flex-1 text-xs sm:text-sm font-medium leading-relaxed font-mono">{downloadStatus}</div>
+          <button 
+            title="Đóng thông báo"
+            onClick={() => setDownloadStatus('')} 
+            className="hover:scale-110 active:scale-95 transition-transform p-0.5 rounded-md hover:bg-black/5 dark:hover:bg-white/5 text-current"
+          >
+            <X className="w-4 h-4 opacity-60 hover:opacity-100 transition-opacity" />
           </button>
         </div>
       )}

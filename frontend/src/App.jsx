@@ -16,7 +16,7 @@ function App() {
       <AudioProvider>
         <PlaylistProvider>
           <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-            <MusicPage activeTab={activeTab} />
+            <MusicPage activeTab={activeTab} setActiveTab={setActiveTab} />
           </Layout>
 
           
@@ -34,4 +34,3 @@ function App() {
 }
 
 export default App
-
