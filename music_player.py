@@ -1,497 +1,114 @@
+"""
+Lofi Music Player — Main Entry Point (thin orchestrator).
+Delegates all logic to backend/ modules.
+"""
+
 import os
 import sys
-import socket
-import threading
-import http.server
-import socketserver
-import urllib.parse
-import mimetypes
-import base64
 import inspect
-import eel
-from mutagen.mp3 import MP3
-from mutagen.id3 import ID3
-import yt_dlp
-import pystray
-from PIL import Image
-import win32gui
-import win32con
+import threading
 import ctypes
-from ctypes import wintypes
+import eel
 
-download_queue = []       # Hàng đợi chứa các url cần tải
-processed_urls = set()    # Lưu các url đã thêm để kiểm tra trùng lặp
-is_downloading = False    # Cờ kiểm tra xem có đang chạy tiến trình tải không
-download_stats = {
-    'total': 0,           # Tổng số bài cần tải trong đợt này
-    'completed': 0,       # Số bài đã tải xong
-    'failed': 0,          # Số bài bị lỗi
-    'current_index': 0,   # Số thứ tự bài đang tải
-    'duplicates': 0       # Số link bị trùng bị bỏ qua
-}
-queue_lock = threading.Lock() # Lock để tránh đụng độ khi nhiều thread thao tác vào biến
+from version import APP_NAME, APP_VERSION, APP_TITLE
+from backend.storage_manager import StorageManager
+from backend.settings_manager import SettingsManager
+from backend.download_manager import DownloadManager
+from backend.file_server import FileServer
+from backend.music_library import MusicLibrary
+from backend.tray_manager import TrayManager
+from backend.playlist_manager import PlaylistManager
+from backend.updater import Updater
 
-# Fix mờ icon và giao diện trên màn hình DPI cao
+# ── DPI Awareness (Windows only) ──────────────────────────────────────────────
 try:
     ctypes.windll.shcore.SetProcessDpiAwareness(1)
 except Exception:
-    ctypes.windll.user32.SetProcessDPIAware()
-
-def get_bottom_right_position(window_size):
-    """Return (x, y) to place a window at the bottom right of the work area."""
     try:
-        window_width, window_height = window_size
-        SPI_GETWORKAREA = 0x0030
-        rect = wintypes.RECT()
-        if ctypes.windll.user32.SystemParametersInfoW(SPI_GETWORKAREA, 0, ctypes.byref(rect), 0):
-            work_width = rect.right - rect.left
-            work_height = rect.bottom - rect.top
-            # Calculate bottom right
-            x = rect.right - window_width - 10 # 10px margin
-            y = rect.bottom - window_height - 10
-            return (x, y)
-        return (100, 100)
+        ctypes.windll.user32.SetProcessDPIAware()
     except Exception:
-        return (100, 100)
+        pass
 
-def get_center_position(window_size):
-    """Return (x, y) to center a window on the primary screen."""
-    try:
-        window_width, window_height = window_size
-
-        SPI_GETWORKAREA = 0x0030
-        rect = wintypes.RECT()
-        if ctypes.windll.user32.SystemParametersInfoW(SPI_GETWORKAREA, 0, ctypes.byref(rect), 0):
-            work_width = rect.right - rect.left
-            work_height = rect.bottom - rect.top
-            x = rect.left + max(0, (work_width - window_width) // 2)
-            y = rect.top + max(0, (work_height - window_height) // 2)
-            return (x, y)
-
-        user32 = ctypes.windll.user32
-        screen_width = user32.GetSystemMetrics(0)
-        screen_height = user32.GetSystemMetrics(1)
-        x = max(0, (screen_width - window_width) // 2)
-        y = max(0, (screen_height - window_height) // 2)
-        return (x, y)
-    except Exception:
-        return None
-
-# --- CẤU HÌNH ĐƯỜNG DẪN ---
-# Khi đóng gói PyInstaller: sys._MEIPASS trỏ tới thư mục tạm chứa data bundled
-# ROOT_BUNDLE: nơi chứa frontend/dist (bundled data)
-# ROOT_APP: nơi chứa exe thực tế (cho downloads, user data)
+# ── Paths ─────────────────────────────────────────────────────────────────────
 if getattr(sys, 'frozen', False):
     ROOT_BUNDLE = sys._MEIPASS
-    ROOT_APP = os.path.dirname(sys.executable)
+    ROOT_APP    = os.path.dirname(sys.executable)
 else:
     ROOT_BUNDLE = os.path.abspath(os.path.dirname(__file__))
-    ROOT_APP = ROOT_BUNDLE
+    ROOT_APP    = ROOT_BUNDLE
 
-DOWNLOADS = os.path.join(ROOT_APP, 'downloads')
+# ── Bootstrap backend services ────────────────────────────────────────────────
+storage  = StorageManager(APP_NAME, ROOT_APP)
+settings = SettingsManager(storage)
+library  = MusicLibrary(storage)
+playlist = PlaylistManager(storage)
+downloader = DownloadManager(storage)
+file_server = FileServer(storage)
+tray     = TrayManager(APP_TITLE, ROOT_BUNDLE)
+updater  = Updater(APP_VERSION, storage)
 
-for dir_path in [DOWNLOADS]:
-    if not os.path.exists(dir_path):
-        os.makedirs(dir_path)
+FILE_SERVER_PORT = file_server.start()
 
+# Re-inject port so library can build correct stream URLs
+library.set_file_server_port(FILE_SERVER_PORT)
 
-# --- FILE SERVER (Stream nhạc cho thẻ <audio>) ---
-def find_free_port():
-    s = socket.socket()
-    s.bind(('', 0))
-    port = s.getsockname()[1]
-    s.close()
-    return port
+# ── Expose all Eel endpoints ──────────────────────────────────────────────────
+settings.expose_eel()
+library.expose_eel(playlist)
+playlist.expose_eel()
+downloader.expose_eel()
+# Note: tray eel endpoints registered in TrayManager.__init__
+# Note: updater eel endpoints registered in Updater.__init__
 
-
-FILE_SERVER_PORT = find_free_port()
-
-
-class RangeRequestHandler(http.server.BaseHTTPRequestHandler):
-    """HTTP handler hỗ trợ Range requests cho audio seeking."""
-
-    def do_GET(self):
-        path = urllib.parse.unquote(self.path.lstrip('/'))
-        filepath = os.path.join(DOWNLOADS, path)
-
-        if not os.path.isfile(filepath):
-            self.send_error(404, 'File not found')
-            return
-
-        file_size = os.path.getsize(filepath)
-        content_type = mimetypes.guess_type(filepath)[0] or 'application/octet-stream'
-        range_header = self.headers.get('Range')
-
-        try:
-            if range_header:
-                range_spec = range_header.strip().split('=')[1]
-                parts = range_spec.split('-')
-                start = int(parts[0]) if parts[0] else 0
-                end = int(parts[1]) if parts[1] else file_size - 1
-
-                self.send_response(206)
-                self.send_header('Content-Type', content_type)
-                self.send_header('Content-Length', str(end - start + 1))
-                self.send_header('Content-Range', f'bytes {start}-{end}/{file_size}')
-                self.send_header('Accept-Ranges', 'bytes')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-
-                with open(filepath, 'rb') as f:
-                    f.seek(start)
-                    remaining = end - start + 1
-                    while remaining > 0:
-                        chunk = f.read(min(64 * 1024, remaining))
-                        if not chunk:
-                            break
-                        try:
-                            self.wfile.write(chunk)
-                        except (ConnectionResetError, BrokenPipeError):
-                            break
-                        remaining -= len(chunk)
-            else:
-                self.send_response(200)
-                self.send_header('Content-Type', content_type)
-                self.send_header('Content-Length', str(file_size))
-                self.send_header('Accept-Ranges', 'bytes')
-                self.send_header('Access-Control-Allow-Origin', '*')
-                self.end_headers()
-                with open(filepath, 'rb') as f:
-                    while True:
-                        chunk = f.read(64 * 1024)
-                        if not chunk:
-                            break
-                        try:
-                            self.wfile.write(chunk)
-                        except (ConnectionResetError, BrokenPipeError):
-                            break
-        except Exception:
-            pass
-
-    def do_OPTIONS(self):
-        self.send_response(200)
-        self.send_header('Access-Control-Allow-Origin', '*')
-        self.send_header('Access-Control-Allow-Methods', 'GET, OPTIONS')
-        self.send_header('Access-Control-Allow-Headers', 'Range')
-        self.end_headers()
-
-    def log_message(self, format, *args):
-        pass  # Tắt log để sạch console
-
-
-def start_file_server():
-    server = socketserver.ThreadingTCPServer(('127.0.0.1', FILE_SERVER_PORT), RangeRequestHandler)
-    server.daemon_threads = True
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    return server
-
-
-# --- CÁC HÀM EEL EXPOSE ---
-
+# ── App version exposed to frontend ───────────────────────────────────────────
 @eel.expose
-def get_playlist():
-    """Trả về danh sách bài hát kèm metadata."""
-    files = [f for f in os.listdir(DOWNLOADS) if f.lower().endswith('.mp3')]
-    playlist = []
-    for f in sorted(files):
-        path = os.path.join(DOWNLOADS, f)
-        title = os.path.splitext(f)[0]
-        artist = "Unknown"
-        duration = "0:00"
-        cover_b64 = ""
-        try:
-            audio = MP3(path)
-            sec = int(audio.info.length)
-            duration = f"{sec // 60}:{sec % 60:02d}"
-            tags = ID3(path)
-            if 'TIT2' in tags:
-                title = str(tags.get('TIT2'))
-            if 'TPE1' in tags:
-                artist = str(tags.get('TPE1'))
-            apics = tags.getall('APIC')
-            if apics:
-                cover_b64 = f"data:{apics[0].mime};base64," + base64.b64encode(apics[0].data).decode('utf-8')
-        except Exception:
-            pass
+def get_app_version():
+    return APP_VERSION
 
-        playlist.append({
-            'file': f,
-            'title': title,
-            'artist': artist,
-            'duration': duration,
-            'cover': cover_b64,
-            'url': f'http://127.0.0.1:{FILE_SERVER_PORT}/{urllib.parse.quote(f)}'
-        })
-    return playlist
-
-@eel.expose
-def delete_song(filename):
-    """Xoá một bài hát khỏi thư mục downloads."""
-    path = os.path.join(DOWNLOADS, filename)
-    if os.path.exists(path):
-        try:
-            os.remove(path)
-            return True
-        except Exception as e:
-            print(f"[ERROR] Khong the xoa file nhac {filename}: {e}")
-    return False
-
-
-
-def _send_status(msg):
-    """Gửi trạng thái download về frontend."""
-    print(f"[Python -> Eel] Status: {msg}")
-    try:
-        # Nếu chưa có attribute, có thể do browser vừa mới khởi động, đợi 0.5s thử lại
-        if not hasattr(eel, 'downloadStatus'):
-            eel.sleep(0.5)
-            
-        if hasattr(eel, 'downloadStatus'):
-            eel.downloadStatus(msg)
-            eel.sleep(0.01)
-        else:
-            print(f"[WARN] Frontend chua expose 'downloadStatus' sau khi doi. Dang bo qua tin nhan.")
-    except Exception as e:
-        print(f"[ERROR] Khong the gui status qua Eel: {e}")
-
-
-@eel.expose
-def start_download(urls):
-    global is_downloading
-    
-    new_urls = [u.strip() for u in urls if u.strip()]
-    if not new_urls:
-        _send_status("⚠️ Vui lòng nhập link YouTube.")
-        return
-
-    added_count = 0
-    
-    with queue_lock:
-        for url in new_urls:
-            # Nếu link đã tồn tại -> Tăng biến đếm trùng lặp
-            if url in processed_urls:
-                download_stats['duplicates'] += 1
-            else:
-                processed_urls.add(url)
-                download_queue.append(url)
-                download_stats['total'] += 1
-                added_count += 1
-
-    with queue_lock:
-        if not is_downloading and download_queue:
-            is_downloading = True
-            threading.Thread(target=process_queue, daemon=True).start()
-        else:
-            if added_count > 0:
-                _send_status(f"⏳ Đã thêm vào hàng đợi. Tổng bài: {download_stats['total']}")
-
-
-def process_queue():
-    global is_downloading
-    
-    ydl_opts = {
-        'format': 'bestaudio/best',
-        'postprocessors': [
-            {'key': 'FFmpegExtractAudio', 'preferredcodec': 'mp3', 'preferredquality': '320'},
-            {'key': 'FFmpegMetadata', 'add_metadata': True},
-            {'key': 'EmbedThumbnail', 'already_have_thumbnail': False}
-        ],
-        'writethumbnail': True,
-        'outtmpl': os.path.join(DOWNLOADS, '%(title)s.%(ext)s'),
-        'quiet': True,
-        'noplaylist': True,
-    }
-    
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        while True:
-            with queue_lock:
-                if not download_queue:
-                    is_downloading = False
-                    break
-                
-                url = download_queue.pop(0)
-                download_stats['current_index'] += 1
-            
-            index = download_stats['current_index']
-            total = download_stats['total']
-            
-            _send_status(f"⏳ Đang tải bài {index}/{total}...")
-            
-            try:
-                ydl.download([url])
-                with queue_lock:
-                    download_stats['completed'] += 1
-                
-                completed = download_stats['completed']
-                _send_status(f"⏳ Đang tải bài {index}/{total} (Xong {completed} bài)...")
-                
-            except Exception as e:
-                with queue_lock:
-                    download_stats['failed'] += 1
-                _send_status(f"⚠️ Lỗi ở bài {index}: {str(e)[:50]}")
-                eel.sleep(1)
-                
-    # ================= KHI TẤT CẢ HÀNG ĐỢI ĐÃ TRỐNG =================
-    total = download_stats['total']
-    completed = download_stats['completed']
-    failed = download_stats['failed']
-    duplicates = download_stats['duplicates']
-    
-    # Tạo text thông báo trùng nếu có
-    dup_text = f" (bỏ qua {duplicates} link trùng)" if duplicates > 0 else ""
-    
-    if completed == total and total > 0:
-        _send_status(f"✅ Hoàn tất! Đã tải thành công {completed}/{total} bài hát{dup_text}.")
-    elif total > 0:
-        _send_status(f"✅ Hoàn tất tải: {completed} thành công, {failed} thất bại{dup_text}.")
-        
-    # Reset các biến thống kê
-    with queue_lock:
-        download_stats['total'] = 0
-        download_stats['completed'] = 0
-        download_stats['failed'] = 0
-        download_stats['current_index'] = 0
-        download_stats['duplicates'] = 0
-        processed_urls.clear()
-
-# --- SYSTEM TRAY & WINDOW MANAGEMENT ---
-APP_TITLE = "Lofi Music Player"
-tray_icon = None
-
-def get_window_handle():
-    return win32gui.FindWindow(None, APP_TITLE)
-
-def show_window(icon, item):
-    hwnd = get_window_handle()
-    if hwnd:
-        win32gui.ShowWindow(hwnd, win32con.SW_SHOW)
-        win32gui.ShowWindow(hwnd, win32con.SW_RESTORE)
-        win32gui.SetForegroundWindow(hwnd)
-
-def hide_window():
-    hwnd = get_window_handle()
-    if hwnd:
-        win32gui.ShowWindow(hwnd, win32con.SW_HIDE)
-
-def exit_app(icon, item):
-    icon.stop()
-    os._exit(0)
-
-def setup_tray():
-    global tray_icon
-    try:
-        # Check multiple locations for the icon
-        paths_to_check = [
-            os.path.join(ROOT_BUNDLE, 'frontend', 'public', 'logo-app.ico'), # Dev
-            os.path.join(ROOT_BUNDLE, 'frontend', 'dist', 'logo-app.ico'),   # Prod
-            os.path.join(ROOT_BUNDLE, 'logo-app.ico'),                     # Root fallback
-        ]
-        
-        icon_path = None
-        for p in paths_to_check:
-            if os.path.exists(p):
-                icon_path = p
-                break
-            
-        if not icon_path:
-            print("[WARN] Icon not found, tray might not start correctly.")
-            # Create a simple colored image if icon is missing
-            image = Image.new('RGB', (64, 64), color='blue')
-        else:
-            image = Image.open(icon_path)
-        menu = pystray.Menu(
-            pystray.MenuItem("Hiện ứng dụng", show_window, default=True),
-            pystray.MenuItem("Ẩn xuống Tray", lambda icon, item: hide_window()),
-            pystray.MenuItem("Thoát", exit_app)
-        )
-        tray_icon = pystray.Icon("LofiMusic", image, APP_TITLE, menu)
-        tray_icon.run()
-    except Exception as e:
-        print(f"[ERROR] Tray icon error: {e}")
-
-@eel.expose
-def set_always_on_top(is_on_top):
-    hwnd = get_window_handle()
-    if hwnd:
-        flag = win32con.HWND_TOPMOST if is_on_top else win32con.HWND_NOTOPMOST
-        win32gui.SetWindowPos(hwnd, flag, 0, 0, 0, 0, win32con.SWP_NOMOVE | win32con.SWP_NOSIZE)
-
-@eel.expose
-def resize_window(width, height, position='center'):
-    hwnd = get_window_handle()
-    if hwnd:
-        if position == 'bottom-right':
-            new_x, new_y = get_bottom_right_position((width, height))
-        else:
-            new_x, new_y = get_center_position((width, height)) or (100, 100)
-        
-        win32gui.MoveWindow(hwnd, new_x, new_y, width, height, True)
-
-@eel.expose
-def minimize_to_tray():
-    hide_window()
-
-# --- CHẠY ỨNG DỤNG ---
+# ── Main ──────────────────────────────────────────────────────────────────────
 if __name__ == '__main__':
     is_dev = '--dev' in sys.argv
 
-    # Xác định thư mục frontend (bundled data)
-    FRONTEND_DIST = os.path.join(ROOT_BUNDLE, 'frontend', 'dist')
-    WINDOW_SIZE = (1100, 750)
-    WINDOW_POSITION = get_center_position(WINDOW_SIZE)
+    FRONTEND_DIST   = os.path.join(ROOT_BUNDLE, 'frontend', 'dist')
+    WINDOW_SIZE     = (1100, 750)
+
+    # Compute centered window position
+    pos = tray.get_center_position(WINDOW_SIZE)
 
     eel_start_kwargs = {"port": 8000, "size": WINDOW_SIZE}
-    if WINDOW_POSITION:
+    if pos:
         try:
             if "position" in inspect.signature(eel.start).parameters:
-                eel_start_kwargs["position"] = WINDOW_POSITION
+                eel_start_kwargs["position"] = pos
         except Exception:
-            eel_start_kwargs["position"] = WINDOW_POSITION
+            eel_start_kwargs["position"] = pos
 
-    print(f"[*] Music Player dang khoi dong...")
-    print(f"[*] Thu muc nhac: {DOWNLOADS}")
+    print(f"[*] {APP_TITLE} v{APP_VERSION} starting...")
+    print(f"[*] Downloads: {storage.downloads_dir}")
     print(f"[*] File server: http://127.0.0.1:{FILE_SERVER_PORT}/")
 
-    # Khởi động file server phục vụ MP3
-    start_file_server()
-
     if is_dev:
-        # === CHẾ ĐỘ DEVELOPMENT ===
-        # Eel chạy trên port 8000, Vite dev server trên port 5173
-        # Vite proxy /eel.js về localhost:8000
-        print("[DEV] Che do: Development (Vite Hot Reload)")
-
-        # Tạo thư mục tạm nếu chưa có dist (eel.init cần 1 thư mục)
+        print("[DEV] Mode: Development (Vite Hot Reload)")
         if not os.path.exists(FRONTEND_DIST):
             os.makedirs(FRONTEND_DIST)
-
-        # CHỈ quét file .html để tránh Eel parse lỗi cú pháp JS bundle
         eel.init(FRONTEND_DIST, allowed_extensions=['.html'])
-
         try:
-            # Start tray in a separate thread
-            threading.Thread(target=setup_tray, daemon=True).start()
-            
+            threading.Thread(target=tray.run, daemon=True).start()
+            # Check for updates on startup (non-blocking)
+            threading.Thread(target=updater.check_on_startup, daemon=True).start()
             eel.start('http://localhost:5173', **eel_start_kwargs)
         except EnvironmentError as e:
-            print(f"[ERROR] Khong mo duoc trinh duyet: {e}")
+            print(f"[ERROR] Cannot open browser: {e}")
     else:
-        # === CHẾ ĐỘ PRODUCTION ===
-        print("[PROD] Che do: Production")
-
+        print("[PROD] Mode: Production")
         if not os.path.exists(FRONTEND_DIST):
-            print("[ERROR] Khong tim thay frontend/dist. Hay chay: cd frontend && npm run build")
+            print("[ERROR] frontend/dist not found. Run: cd frontend && npm run build")
             sys.exit(1)
-
-        # CHỈ quét file .html để tránh Eel parse lỗi cú pháp JS bundle
         eel.init(FRONTEND_DIST, allowed_extensions=['.html'])
-
         try:
-            # Start tray in a separate thread
-            threading.Thread(target=setup_tray, daemon=True).start()
-            
-            # Start Eel
+            threading.Thread(target=tray.run, daemon=True).start()
+            # Check for updates on startup (non-blocking)
+            threading.Thread(target=updater.check_on_startup, daemon=True).start()
             eel.start('index.html', **eel_start_kwargs)
         except EnvironmentError as e:
-            print(f"[ERROR] Khong mo duoc trinh duyet: {e}")
+            print(f"[ERROR] Cannot open browser: {e}")

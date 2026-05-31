@@ -3,6 +3,10 @@
 # ========================================
 # Bỏ qua thư mục chứa nhạc tải về (được định nghĩa trong music_player.py)
 /downloads/
+/database/
+/settings/
+/playlists/
+/cache/
 *.mp3
 *.mp4
 *.wav

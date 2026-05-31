@@ -18,8 +18,21 @@
             const event = new CustomEvent('eelDownloadStatus', { detail: msg });
             window.dispatchEvent(event);
           };
-          // Expose hàm cho phía Python gọi
           eel.expose(window.downloadStatus, 'downloadStatus');
+          
+          // Khai báo hàm xử lý update
+          window.onUpdateAvailable = function(data) {
+            const event = new CustomEvent('eelUpdateAvailable', { detail: data });
+            window.dispatchEvent(event);
+          };
+          eel.expose(window.onUpdateAvailable, 'onUpdateAvailable');
+
+          window.updateProgress = function(data) {
+            const event = new CustomEvent('eelUpdateProgress', { detail: data });
+            window.dispatchEvent(event);
+          };
+          eel.expose(window.updateProgress, 'updateProgress');
+
           console.log('[Eel] script loaded and exposed');
         }
       };

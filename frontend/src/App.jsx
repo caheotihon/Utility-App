@@ -1,29 +1,37 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { AudioProvider } from './context/AudioContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { PlaylistProvider } from './context/PlaylistContext'
 import Layout from './components/layout'
 import MusicPage from './features/music/MusicPage'
-import MusicStats from './features/music/components/MusicStats'
-import MusicHistory from './features/music/components/MusicHistory'
+import UpdateModal from './components/UpdateModal'
+import { useAutoUpdate } from './hooks/useAutoUpdate'
 
 function App() {
-  const [activeFeature, setActiveFeature] = useState(() => localStorage.getItem('activeFeature') || 'music')
-
-  useEffect(() => {
-    localStorage.setItem('activeFeature', activeFeature)
-  }, [activeFeature])
+  const { updateInfo, progress, isUpdating, startUpdate, dismissUpdate } = useAutoUpdate()
+  const [activeTab, setActiveTab] = useState('home')
 
   return (
     <ThemeProvider>
       <AudioProvider>
-        <Layout activeFeature={activeFeature} setActiveFeature={setActiveFeature}>
-          {activeFeature === 'music' && <MusicPage />}
-          {activeFeature === 'stats' && <MusicStats />}
-          {activeFeature === 'history' && <MusicHistory />}
-        </Layout>
+        <PlaylistProvider>
+          <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+            <MusicPage activeTab={activeTab} />
+          </Layout>
+
+          
+          <UpdateModal
+            updateInfo={updateInfo}
+            progress={progress}
+            isUpdating={isUpdating}
+            onStartUpdate={startUpdate}
+            onDismiss={dismissUpdate}
+          />
+        </PlaylistProvider>
       </AudioProvider>
     </ThemeProvider>
   )
 }
 
 export default App
+

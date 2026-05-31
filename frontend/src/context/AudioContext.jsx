@@ -25,14 +25,6 @@ export function AudioProvider({ children }) {
   const [bassLevel, setBassLevel] = useState(0)
   const [frequencies, setFrequencies] = useState(new Uint8Array(0))
   const [isMiniPlayer, setIsMiniPlayer] = useState(false)
-  const [playHistory, setPlayHistory] = useState(() => {
-    const saved = localStorage.getItem('music_history')
-    return saved ? JSON.parse(saved) : []
-  })
-  const [playStats, setPlayStats] = useState(() => {
-    const saved = localStorage.getItem('music_stats')
-    return saved ? JSON.parse(saved) : {}
-  })
 
   const audioRef = useRef(new Audio())
   const loadedTrackKeyRef = useRef(null)
@@ -66,14 +58,6 @@ export function AudioProvider({ children }) {
   useEffect(() => {
     localStorage.setItem('music_favorites', JSON.stringify(favorites))
   }, [favorites])
-
-  useEffect(() => {
-    localStorage.setItem('music_history', JSON.stringify(playHistory))
-  }, [playHistory])
-
-  useEffect(() => {
-    localStorage.setItem('music_stats', JSON.stringify(playStats))
-  }, [playStats])
 
   const initAudioContext = useCallback(() => {
     if (audioContextRef.current) return
@@ -258,28 +242,6 @@ export function AudioProvider({ children }) {
     setCurrentTime(0)
     setDuration(0)
 
-    // Track history and stats
-    const now = new Date()
-    // Chuẩn hóa thành DD/MM/YYYY để CalendarPicker parse đúng
-    const dd = String(now.getDate()).padStart(2, '0')
-    const mm = String(now.getMonth() + 1).padStart(2, '0')
-    const yyyy = now.getFullYear()
-    const dateStr = `${dd}/${mm}/${yyyy}`
-
-    setPlayHistory(prev => [{
-      file: track.file,
-      title: track.title,
-      artist: track.artist,
-      timestamp: now.getTime(),
-      date: dateStr
-    }, ...prev].slice(0, 100))
-
-    setPlayStats(prev => {
-      const stats = { ...prev }
-      const key = track.title || track.file
-      stats[key] = (stats[key] || 0) + 1
-      return stats
-    })
   }, [currentTrackIndex, playlist])
 
   useEffect(() => {
@@ -399,9 +361,7 @@ export function AudioProvider({ children }) {
     bassLevel,
     frequencies,
     isMiniPlayer,
-    playHistory,
-    playStats,
-  }), [currentTrack, currentTrackIndex, isPlaying, currentTime, duration, volume, isMuted, isShuffle, repeatMode, bassLevel, frequencies, isMiniPlayer, playHistory, playStats])
+  }), [currentTrack, currentTrackIndex, isPlaying, currentTime, duration, volume, isMuted, isShuffle, repeatMode, bassLevel, frequencies, isMiniPlayer])
 
   const libraryValue = useMemo(() => ({
     playlist,

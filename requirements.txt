@@ -1,4 +1,10 @@
+# Core
 eel
 mutagen
 yt-dlp
+Pillow
+pystray
+pywin32
+
+# Build
 pyinstaller
