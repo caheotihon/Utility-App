@@ -4,7 +4,6 @@ import { ThemeProvider } from './context/ThemeContext'
 import { PlaylistProvider } from './context/PlaylistContext'
 import Layout from './components/layout'
 import MusicPage from './features/music/MusicPage'
-import UpdateModal from './components/UpdateModal'
 import { useAutoUpdate } from './hooks/useAutoUpdate'
 
 function App() {
@@ -15,18 +14,17 @@ function App() {
     <ThemeProvider>
       <AudioProvider>
         <PlaylistProvider>
-          <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
-            <MusicPage activeTab={activeTab} setActiveTab={setActiveTab} />
-          </Layout>
-
-          
-          <UpdateModal
+          <Layout
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
             updateInfo={updateInfo}
             progress={progress}
             isUpdating={isUpdating}
             onStartUpdate={startUpdate}
-            onDismiss={dismissUpdate}
-          />
+            onDismissUpdate={dismissUpdate}
+          >
+            <MusicPage activeTab={activeTab} setActiveTab={setActiveTab} />
+          </Layout>
         </PlaylistProvider>
       </AudioProvider>
     </ThemeProvider>

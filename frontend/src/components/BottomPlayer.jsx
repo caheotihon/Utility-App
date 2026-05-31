@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Repeat1, Shuffle, Heart, PlusCircle, Shrink, ListMusic } from 'lucide-react'
-import { useAudioPlayback, useAudioActions } from '../context/AudioContext'
+import { useAudioPlayback, useAudioLibrary, useAudioActions } from '../context/AudioContext'
 import { useTheme } from '../context/ThemeContext'
 import AddToPlaylistModal from '../features/music/components/AddToPlaylistModal'
 
@@ -17,6 +17,7 @@ export default function BottomPlayer({ activeTab, setActiveTab }) {
         currentTrack, isPlaying, currentTime, duration,
         volume = 0.6, isMuted, isShuffle, repeatMode, isMiniPlayer
     } = useAudioPlayback()
+    const { playlist } = useAudioLibrary()
     const {
         togglePlay, seek, setVolume, setIsMuted,
         toggleShuffle, toggleRepeat, handleNext, handlePrev,
@@ -38,6 +39,7 @@ export default function BottomPlayer({ activeTab, setActiveTab }) {
     }
 
     if (isMiniPlayer) return null
+    if (!currentTrack || playlist.length === 0) return null
 
     const currentVolume = isMuted ? 0 : volume
     const volumePercent = Math.round(currentVolume * 100)

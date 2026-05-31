@@ -3,11 +3,26 @@ import Header from './Header'
 import Sidebar from './Sidebar'
 import BottomPlayer from './BottomPlayer'
 
-export default function Layout({ children, activeTab, setActiveTab }) {
+export default function Layout({
+    children,
+    activeTab,
+    setActiveTab,
+    updateInfo,
+    progress,
+    isUpdating,
+    onStartUpdate,
+    onDismissUpdate,
+}) {
     return (
         <div className="flex flex-col h-screen w-full bg-white dark:bg-[#030303] text-gray-900 dark:text-gray-100 overflow-hidden font-sans transition-colors duration-300">
             {/* Top Header */}
-            <Header />
+            <Header
+                updateInfo={updateInfo}
+                progress={progress}
+                isUpdating={isUpdating}
+                onStartUpdate={onStartUpdate}
+                onDismissUpdate={onDismissUpdate}
+            />
 
             {/* Middle section (Sidebar + Main Content) */}
             <div className="flex flex-1 min-h-0 relative z-0">

@@ -38,6 +38,22 @@ export function useAutoUpdate() {
         }
     }, [])
 
+    useEffect(() => {
+        const runCheck = () => {
+            checkForUpdate()
+        }
+
+        if (window.eel?.check_for_update) {
+            checkForUpdate()
+        }
+
+        window.addEventListener('eelReady', runCheck)
+
+        return () => {
+            window.removeEventListener('eelReady', runCheck)
+        }
+    }, [checkForUpdate])
+
     const startUpdate = useCallback(async () => {
         if (!window.eel || !updateInfo || !updateInfo.download_url) return
         setIsUpdating(true)
