@@ -22,7 +22,14 @@ export function PlaylistProvider({ children }) {
     }, [])
 
     useEffect(() => {
-        fetchPlaylists()
+        if (window.eel) {
+            fetchPlaylists()
+            return
+        }
+
+        const handleEelReady = () => fetchPlaylists()
+        window.addEventListener('eelReady', handleEelReady, { once: true })
+        return () => window.removeEventListener('eelReady', handleEelReady)
     }, [fetchPlaylists])
 
     const createPlaylist = useCallback((name) => {

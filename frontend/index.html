@@ -13,6 +13,8 @@
       script.src = '/eel.js';
       script.onload = function() {
         if (window.eel) {
+          window.dispatchEvent(new Event('eelReady'));
+
           // Khai báo hàm xử lý status tải xuống
           window.downloadStatus = function(msg) {
             const event = new CustomEvent('eelDownloadStatus', { detail: msg });

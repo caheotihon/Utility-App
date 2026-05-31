@@ -131,7 +131,14 @@ export function AudioProvider({ children }) {
   }, [])
 
   useEffect(() => {
-    refreshPlaylist()
+    if (window.eel) {
+      refreshPlaylist()
+      return
+    }
+
+    const handleEelReady = () => refreshPlaylist()
+    window.addEventListener('eelReady', handleEelReady, { once: true })
+    return () => window.removeEventListener('eelReady', handleEelReady)
   }, [refreshPlaylist])
 
   useEffect(() => {
